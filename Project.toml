@@ -1,0 +1,13 @@
+name = "ConeProgramDiff"
+uuid = "0c54c6e2-157f-4a7d-9c7d-4de9ca9faf0e"
+authors = ["Chandler Squires", "Theo Diamandis"]
+version = "0.1.0"
+
+[compat]
+julia = "1.5"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
