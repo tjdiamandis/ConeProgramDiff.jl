@@ -6,8 +6,9 @@ using SCS, ECOS, Hypatia                #Solvers
 
 const MOI = MathOptInterface
 
-include("cone_solve.jl")
+# include("cone_solve.jl")
+include("generate_program.jl")
 
-export test_solve
+# export project_onto_cone
 
 end
