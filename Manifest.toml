@@ -21,6 +21,12 @@ git-tree-sha1 = "ecdec412a9abc8db54c0efc5548c64dfce072058"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
 version = "0.5.10"
 
+[[BlockDiagonals]]
+deps = ["ChainRulesCore", "FillArrays", "LinearAlgebra"]
+git-tree-sha1 = "21a7564cae95c076d85748627bc3c4f967c944e7"
+uuid = "0a1fb500-61f7-11e9-3c65-f5ef3456f9f0"
+version = "0.1.8"
+
 [[Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "c3598e525718abcc440f69cc6d5f60dda0a1b61e"
@@ -32,6 +38,12 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 version = "0.5.1"
+
+[[ChainRulesCore]]
+deps = ["LinearAlgebra", "MuladdMacro", "SparseArrays"]
+git-tree-sha1 = "bd7db5cdb38fe787892fc7af2e006dac34e62ddd"
+uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+version = "0.9.23"
 
 [[CodecBzip2]]
 deps = ["Bzip2_jll", "Libdl", "TranscodingStreams"]
@@ -109,6 +121,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "c11ea452ae3fb7e69dadb6a3be6ec8d9403997fe"
 uuid = "c2c64177-6a8e-5dca-99a7-64895ad7445f"
 version = "2.0.5+1"
+
+[[FillArrays]]
+deps = ["LinearAlgebra", "Random", "SparseArrays"]
+git-tree-sha1 = "c1cf9e87a5c45f0c05dc31ae95757f706e70865a"
+uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
+version = "0.10.1"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random", "SpecialFunctions", "StaticArrays"]
@@ -209,6 +227,12 @@ git-tree-sha1 = "c4788b9cb29f8d1508e16419e66a7e617b46192d"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 version = "0.9.19"
 
+[[MathOptSetDistances]]
+deps = ["BlockDiagonals", "LinearAlgebra", "MathOptInterface"]
+git-tree-sha1 = "7477db08ea29edfe019d5d1cfae179ec519e991e"
+uuid = "3b969827-a86c-476c-9527-bb6f1a8fbad5"
+version = "0.1.0"
+
 [[MathProgBase]]
 deps = ["LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "9abbe463a1e9fc507f12a69e7f29346c2cdc472c"
@@ -229,6 +253,11 @@ version = "2.16.8+1"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
+
+[[MuladdMacro]]
+git-tree-sha1 = "c6190f9a7fc5d9d5915ab29f2134421b12d24a68"
+uuid = "46d2c3a1-f734-5fdb-9937-b9b9aeba4221"
+version = "0.2.2"
 
 [[MutableArithmetics]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]

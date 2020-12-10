@@ -1,7 +1,10 @@
 module ConeProgramDiff
 
-using JuMP, LinearAlgebra
-using SCS, ECOS, Hypatia
+using LinearAlgebra, SparseArrays       #stdlib
+using JuMP, MathOptInterface            #Opt utils
+using SCS, ECOS, Hypatia                #Solvers
+
+const MOI = MathOptInterface
 
 include("cone_solve.jl")
 
