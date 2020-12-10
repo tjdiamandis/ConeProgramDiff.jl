@@ -1,171 +1,182 @@
-#
-# diffcp.ZERO for the zero cone,
-# diffcp.POS for the positive orthant,
-# diffcp.SOC for a product of SOC cones,
-# diffcp.PSD for a product of PSD cones, and
-# diffcp.EXP for a product of exponential cones.
+const SUPPORTED_MOSD_INPUT_SETS = Union{
+    MOI.Zeros,
+    MOI.Nonnegatives,
+    MOI.SecondOrderCone,
+    MOI.PositiveSemidefiniteConeTriangle,
+}
 
-SUPPORTED_MOSD_SETS = Union{MOI.SecondOrderCone, MOI.Nonnegatives}
+const SUPPORTED_NON_MOSD_INPUT_SETS = Union{
+    MOI.ExponentialCone,
+    MOI.DualExponentialCone,
+    MOI.PowerCone,
+    MOI.DualPowerCone
+}
 
-model = Model(Hypatia.Optimizer)
-@variable(model, x[1:10])
-@constaint(A*x + s .== c)
+const SUPPORTED_MOSD_SETS = Union{
+    SUPPORTED_MOSD_INPUT_SETS,
+    MOI.Reals
+}
+const SUPPORTED_NON_MOSD_SETS = SUPPORTED_NON_MOSD_INPUT_SETS
 
-# TODO: Type function
-function solve_and_diff(A, b, c, cone_dict; warm_start=nothing, solver="SCS")  # T <: Float
+const SUPPORTED_PROJ_SETS = Union{
+    SUPPORTED_MOSD_SETS,
+    SUPPORTED_NON_MOSD_SETS
+}
+
+# Same as cones supported by SCS
+const SUPPORTED_INPUT_SETS = Union{
+    SUPPORTED_MOSD_INPUT_SETS,
+    SUPPORTED_NON_MOSD_INPUT_SETS
+}
+
+const SUPPORTED_SOLVERS = Dict(
+    "ECOS" => ECOS.Optimizer,
+    "Hypatia" => Hypatia.Optimizer,
+    "SCS" => SCS.Optimizer
+)
+
+
+# TODO: Type function params A,b,c
+function solve_and_diff(
+    A, b, c, cone_prod::Vector{T}; warm_start=nothing, solver="SCS"
+) where {T <: SUPPORTED_INPUT_SETS}
     m,n = size(A)
-    # Cone dict check: valid cones and dimension match
-    # TODO: check that cone is in supported cones
-    # @assert all([c in CONES for (c, n) in cone_dict])
-    # check dimension matches
-    @assert all([c.dimension > 0 for c in cone_dict])
-    @assert sum([c.dimension for c in cone_dict]) == m
     # dimension check
     @assert length(b) == m
     @assert length(c) == n
+    @assert all([MOI.dimension(c) > 0 for c in cone_prod])
+    @assert sum([MOI.dimension(c) for c in cone_prod]) == m
 
     # Solver select
-    # TODO: Potentially allow more cones for Hypatia
-    if solver == "Hypatia"
-        model = Model(Hypatia.Optimizer)
-    elseif solver == "ECOS"
-        model = Model(ECOS.Optimizer)
-    elseif solver == "SCS"
-        model = Model(SCS.Optimizer)
+    if solver in keys(SUPPORTED_SOLVERS)
+        model = Model(SUPPORTED_SOLVERS[solver])
+        # TODO: check cone_prod for each solver
     else
         throw(ArgumentError("Invalid solver"))
     end
 
-    # Model
+    # TODO: forward pass function
+    # Model using JuMP
     @variable(model, x[1:n])
     @variable(model, s[1:m])
-    @objective(model, Max, c'*x)
+    @objective(model, Min, c'*x)
     @constraint(model, A*x + s .== b)
-
     curr = 1
-    for cone in cone_dict
+    for cone in cone_prod
         @constraint(model, s[curr:curr+cone.dimension-1] in cone)
         curr += cone.dimension
     end
-
     optimize!(model)
-    xstar = value.(x)
+    if ~(termination_status(model) == MOI.OPTIMAL)
+        error("Model not solved correctly.
+               Termination status: $(termination_status(model))")
+    end
+
+    primal_status(model)
+    dual_status(model)
+    x_star = value.(x)
+    s_star = value.(s)
+    y_star = dual.(model)
 
     # backward pass
-
+    # TODO: extend to dy and ds
     function pullback(dx)
+        u, v, w = (x_star, y_star - s_star, 1.0) #def z
         dz = [dx, zeros(m), -x' * dx]
-        M = nothing  # TODO: page 5, requires projection gradient
-        g = nothing  # TODO: linear system solve of M and dz
+        Pi_z = pi_z(u, w, v)
+        M = (Q - I) * dpi(u, v, w, cone_prod) + I
+        g = lsqr(-M', dz)
+        dQ = g' * Pi_z
+
+        dA = dQ[1:n,n+1:n+m]'  + dQ[n+1:n+m,1:n]    # dQ12' - dQ21
+        db = dQ[n+1:n+m,m+n+1] + dQ[m+n+1,n+1:n+m]  # dQ23 - dQ32'
+        dc = dQ[1:n,m+n+1]     + dQ[m+n+1,1:n]'     # dQ13 - dQ31'
+        return dA, db, dc
     end
-    # dz
 
+    function push_forward(dA, db, dc)
+        u, v, w = (x_star, y_star - s_star, 1.0)
+        dQ = spzeros(n+m+1, n+m+1)
+        # Set dA, db, dc
+        # M = (Q - I) * dpi(u, v, w, cone_prod) + I
+        # g = dQ*pi_z(u, v, w)
+        # dz = lsqr(-M, g)
+        du, dv, dw = dz[1:n], dz[n+1:n+m], dz[n+m+1]
+        dx = du .- dw*x
+        dy = nothing        #proj onto dual cone TODO
+        ds = nothing        #proj onto dual cone TODO
+        return dx, dy, ds
+    end
 
-    # dQ - use sparse matrices
-
-    # overall projection
-    #   - projections onto each cone
+    return x_star, y_star, s_star, pushforward, pullback
 end
 
-function _pi(x, cone_dict)
+function pi_z(u, v, w)
+    return vcat(
+        u,
+        project_onto_cone(v, [MOI.dual_set(c) for c in cone_prod]),
+        max(w, 0.0)
+    )
+end
+
+function dpi(u, v, w, cone_prod)
+    return blockdiag(
+        Matrix{Float64}(I, length(u), length(u)),
+        _d_proj(c, cone_prod),
+        Matrix{Float64}(I, 1,1)
+    )
+end
+
+function project_onto_cone(x, cone_prod)
     # TODO: fix to be undefined.
     pi_x = zeros(length(x))
+    # pi_x = Vector{typeof(x)}(undef, length(x))
     curr = 1
-    for cone in cone_dict
-        a = _proj(x[curr:curr+cone.dimension-1], cone)
-        pi_x[curr:curr+cone.dimension-1] .= a
+    for cone in cone_prod
+        x_curr = @view(x[curr:curr+MOI.dimension(cone)-1])
+        pi_x[curr:curr+MOI.dimension(cone)-1] .= _proj(x_curr, cone)
         curr += cone.dimension
     end
     return pi_x
 end
 
+
 function _proj(x, cone)
     if typeof(cone) <: SUPPORTED_MOSD_SETS
         return MOSD.projection_on_set(MOSD.DefaultDistance(), x, cone)
+    elseif typeof(cone) <: SUPPORTED_NON_MOSD_SETS
+        return _proj_custom(x, cone)
     else
-        throw(ArgumentError("Cone is not of supported type."))
+        throw(ArgumentError("Projections for $(typeof(cone)) are not supported"))
     end
 end
 
-function _proj_grad(x, cone)
+
+function _d_proj(x, cone)
     if typeof(cone) <: SUPPORTED_MOSD_SETS
         return MOSD.projection_gradient_on_set(MOSD.DefaultDistance(), x, cone)
+    elseif typeof(cone) <: SUPPORTED_NON_MOSD_SETS
+        return _d_proj_custom(x, cone)
     else
         throw(ArgumentError("Cone is not of supported type."))
     end
 end
 
-_pi(rand(4), [MOI.Nonnegatives(2), MOI.SecondOrderCone(2)])
 
-function rand_cone_prog(m, n)
-    A = rand(m, n)
-    b = rand(m)
-    c = rand(n)
-    return A, b, c
-end
-A, b, c = rand_cone_prog(3, 4)
-solve_and_diff(A, b, c, [MOI.Nonnegatives(3)], solver="Hypatia")
-
-
-function test_solve()
-    items  = [:Gold, :Silver, :Bronze]
-    values = Dict(:Gold => 5.0,  :Silver => 3.0,  :Bronze => 1.0)
-    weight = Dict(:Gold => 2.0,  :Silver => 1.5,  :Bronze => 0.3)
-
-    model = Model(SCS.Optimizer)
-    @variable(model, 0 <= take[items] <= 1)  # Define a variable for each item
-    @objective(model, Max, sum(values[item] * take[item] for item in items))
-    @constraint(model, sum(weight[item] * take[item] for item in items) <= 3)
-    optimize!(model)
-    println(value.(take))
-    return value
+function _proj_custom(x, cone::SUPPORTED_NON_MOSD_SETS)
+    error("Not Implemented")
+    # TODO: Exponential Cone:
+    # Projection: https://web.stanford.edu/~boyd/papers/pdf/prox_algs.pdf 6.3
+    # Grad: http://proceedings.mlr.press/v70/ali17a/ali17a.pdf lemma 3.6
+    # TODO: Power cone
+    # https://link.springer.com/article/10.1007/s00186-015-0514-0
 end
 
-items  = [:Gold, :Silver, :Bronze]
-vals = Dict(:Gold => 5.0,  :Silver => 3.0,  :Bronze => 1.0)
-weight = Dict(:Gold => 2.0,  :Silver => 1.5,  :Bronze => 0.3)
-model = Model(SCS.Optimizer)
-@variable(model, 0 <= take[items] <= 1)  # Define a variable for each item
-@objective(model, Max, sum(vals[item] * take[item] for item in items))
-@variable(model, x[1:10])
-x
-@constraint(model, x in zero)
-take
-# setup model
-V = rand(2, 3)
 
-model = Model(Hypatia.Optimizer)
-@variable(model, x[1:3] >= 0)
-@constraint(model, sum(x) == 5)
-@variable(model, hypo)
-@objective(model, Max, hypo)
-Q = V * diagm(x) * V'
-@constraint(model, vcat(hypo, [Q[i, j] for i in 1:2 for j in 1:i]...) in MOI.RootDetConeTriangle(2))
-@variable(model, hypo)
-
-# solve
-optimize!(model)
-termination_status(model)
-objective_value(model)
-value.(x)
-
-using SCS
-using LinearAlgebra
-using Hypatia
-using JuMP
-using MathOptInterface
-using MathOptSetDistances
-const MOI = MathOptInterface
-const MOSD = MathOptSetDistances
-
-A = rand(3) .- .5
-MOSD.projection_on_set(MOSD.DefaultDistance(), A, MOI.Nonnegatives(3))
-eye4 = [1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]  # symmetrical PSD triangle format
-MOSD.projection_on_set(MOSD.DefaultDistance(), eye4, MOI.PositiveSemidefiniteConeTriangle(4))
-A = rand(4)
-MOSD.projection_on_set(MOSD.DefaultDistance(), A, MOI.SecondOrderCone(4))
-MOSD.projection_gradient_on_set
-
-Dict("a"=>1)
-Dict(MOI.Zeros=>3, MOI.Reals=>2, MOI.Zeros=>2)
-[(MOI.Zeros(3)), (MOI.Reals(2))]
+function _d_proj_custom(x, cone::SUPPORTED_NON_MOSD_CONES)
+    error("Not Implemented")
+    # TODO: Exponential Cone:
+    # Grad: http://proceedings.mlr.press/v70/ali17a/ali17a.pdf lemma 3.6
+    # TODO: Power cone
+    # https://link.springer.com/article/10.1007/s00186-015-0514-0
+end
