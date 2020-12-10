@@ -50,4 +50,4 @@ end
 # b = randn(4)
 # c = randn(3)
 # cp_to_file("test.txt", (A, b, c), dense=false)
-# cp_from_file("test.txt", dense=false)
+cp_from_file("test.txt", dense=false)
