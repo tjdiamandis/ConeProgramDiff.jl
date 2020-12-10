@@ -41,42 +41,27 @@ function solve_and_diff(
     A, b, c, cone_prod::Vector{T}; warm_start=nothing, solver="SCS"
 ) where {T <: SUPPORTED_INPUT_SETS}
     m,n = size(A)
-    # dimension check
+
+    # Arguments check
     @assert length(b) == m
     @assert length(c) == n
     @assert all([MOI.dimension(c) > 0 for c in cone_prod])
     @assert sum([MOI.dimension(c) for c in cone_prod]) == m
-
-    # Solver select
     if solver in keys(SUPPORTED_SOLVERS)
-        model = Model(SUPPORTED_SOLVERS[solver])
+        optimizer = SUPPORTED_SOLVERS[solver]
         # TODO: check cone_prod for each solver
     else
         throw(ArgumentError("Invalid solver"))
     end
 
-    # TODO: forward pass function
-    # Model using JuMP
-    @variable(model, x[1:n])
-    @variable(model, s[1:m])
-    @objective(model, Min, c'*x)
-    @constraint(model, A*x + s .== b)
-    curr = 1
-    for cone in cone_prod
-        @constraint(model, s[curr:curr+cone.dimension-1] in cone)
-        curr += cone.dimension
-    end
-    optimize!(model)
-    if ~(termination_status(model) == MOI.OPTIMAL)
-        error("Model not solved correctly.
-               Termination status: $(termination_status(model))")
-    end
+    return _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer)
+end
 
-    primal_status(model)
-    dual_status(model)
-    x_star = value.(x)
-    s_star = value.(s)
-    y_star = dual.(model)
+function _solve_and_diff(
+    A, b, c, cone_prod::Vector{T}, warm_start, optimizer
+) where {T <: SUPPORTED_INPUT_SETS}
+    m,n = size(A)
+    x_star, y_star, s_star = solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer)
 
     # backward pass
     # TODO: extend to dy and ds
@@ -107,8 +92,29 @@ function solve_and_diff(
         ds = nothing        #proj onto dual cone TODO
         return dx, dy, ds
     end
-
     return x_star, y_star, s_star, pushforward, pullback
+end
+
+function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
+    model = Model(optimizer_factory)
+    @variable(model, x[1:n])
+    @variable(model, s[1:m])
+    @objective(model, Min, c'*x)
+    @constraint(model, A*x + s .== b)
+    curr = 1
+    for cone in cone_prod
+        @constraint(model, s[curr:curr+cone.dimension-1] in cone)
+        curr += cone.dimension
+    end
+    optimize!(model)
+    if ~(termination_status(model) == MOI.OPTIMAL)
+        error("Model not solved correctly.
+               Termination status: $(termination_status(model))")
+    end
+
+    # primal_status(model)
+    # dual_status(model)
+    return value.(x), dual.(model), value.(s)
 end
 
 function pi_z(u, v, w)
