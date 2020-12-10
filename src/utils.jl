@@ -5,7 +5,19 @@ unvec_symm = MOSD.unvec_symm
 
 
 # Write and read CP from file
-function cp_to_file(file, params; opt_vals=(), dense=true)
+function cp_to_file(file, params_dict; dense=true)
+    A, b, c = params_dict[:A], params_dict[:b], params_dict[:c]
+    if isnothing(params_dict[:x_star])
+         _cp_to_file(file, (A, b, c), dense=dense)
+    else
+        x_star = params_dict[:x_star]
+        y_star = params_dict[:y_star]
+        s_star = params_dict[:s_star]
+        _cp_to_file(file, (A, b, c), opt_vals=(x_star, y_star, s_star) dense=dense)
+    end
+end
+
+function _cp_to_file(file, params; opt_vals=(), dense=true)
     if dense
         writedlm(file, (params..., opt_vals...))
     else
@@ -36,7 +48,7 @@ function cp_from_file(file; dense=true)
         c = parse.(Float64, split(file_vec[3+offset], '\t'))
     end
 
-    if nvars == 6
+    if nvars in [6, 8]
         x_star = parse.(Float64, split(file_vec[4+offset], '\t'))
         y_star = parse.(Float64, split(file_vec[5+offset], '\t'))
         s_star = parse.(Float64, split(file_vec[6+offset], '\t'))
@@ -51,5 +63,6 @@ end
 # A = sparse(randn(4,3))
 # b = randn(4)
 # c = randn(3)
-# cp_to_file("test.txt", (A, b, c), dense=false)
-# cp_from_file("test.txt", dense=false)
+# _cp_to_file("nothing.txt", (A, b, c), opt_vals=(nothing, nothing, nothing), dense=false)
+# # cp_from_file("test.txt", dense=false)
+# iterate((nothing, nothing, nothing))
