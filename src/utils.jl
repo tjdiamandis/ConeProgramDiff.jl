@@ -21,6 +21,9 @@ function cp_from_file(file; dense=true)
         ~(nvars in [3, 6]) && throw(ArgumentError("Invalid file"))
         offset = 0
         A_flat = parse.(Float64, split(file_vec[1], '\t'))
+        b = parse.(Float64, split(file_vec[2+offset], '\t'))
+        c = parse.(Float64, split(file_vec[3+offset], '\t'))
+        m,n = length(b), length(c)
         A = reshape(A_flat, (m,n))
     else
         ~(nvars in [5, 8]) && throw(ArgumentError("Invalid file"))
@@ -29,10 +32,9 @@ function cp_from_file(file; dense=true)
         A_col_inds = parse.(Int, split(file_vec[2], '\t'))
         A_vals = parse.(Float64, split(file_vec[3], '\t'))
         A = sparse(A_row_inds, A_col_inds, A_vals)
+        b = parse.(Float64, split(file_vec[2+offset], '\t'))
+        c = parse.(Float64, split(file_vec[3+offset], '\t'))
     end
-
-    b = parse.(Float64, split(file_vec[2+offset], '\t'))
-    c = parse.(Float64, split(file_vec[3+offset], '\t'))
 
     if nvars == 6
         x_star = parse.(Float64, split(file_vec[4+offset], '\t'))
