@@ -13,7 +13,7 @@ function cp_to_file(file, params_dict; dense=true)
         x_star = params_dict[:x_star]
         y_star = params_dict[:y_star]
         s_star = params_dict[:s_star]
-        _cp_to_file(file, (A, b, c), opt_vals=(x_star, y_star, s_star) dense=dense)
+        _cp_to_file(file, (A, b, c), opt_vals=(x_star, y_star, s_star), dense=dense)
     end
 end
 
@@ -26,7 +26,7 @@ function _cp_to_file(file, params; opt_vals=(), dense=true)
 end
 
 function cp_from_file(file; dense=true)
-    file_vec = readlines("test.txt")
+    file_vec = readlines(file)
     nvars = length(file_vec)
 
     if dense
@@ -59,6 +59,48 @@ function cp_from_file(file; dense=true)
                 :y_star => y_star, :s_star => s_star)
 end
 
+
+function derivatives_to_file(file, deriv, adjoint)
+    packed_deriv = (deriv[:dA], deriv[:db], deriv[:dc], deriv[:dx], deriv[:dy], deriv[:ds])
+    packed_adjoint = (adjoint[:dA], adjoint[:db], adjoint[:dc], adjoint[:dx], adjoint[:dy], adjoint[:ds])
+    writedlm(file, (packed_deriv..., packed_adjoint...))
+end
+
+
+function derivatives_from_file(file)
+    file_vec = readlines(file)
+
+    function from_file(file_vec, offset)
+        ret = Dict()
+        ret[:db] = parse.(Float64, split(file_vec[2+offset], '\t'))
+        ret[:dc] = parse.(Float64, split(file_vec[3+offset], '\t'))
+        m, n = length(ret[:db]), length(ret[:dc])
+        ret[:dA] = reshape(parse.(Float64, split(file_vec[1+offset], '\t')), (m,n))
+
+        ret[:dx] = parse.(Float64, split(file_vec[4+offset], '\t'))
+        ret[:dy] = parse.(Float64, split(file_vec[5+offset], '\t'))
+        ret[:ds] = parse.(Float64, split(file_vec[6+offset], '\t'))
+        return ret
+    end
+
+    # derivative, offset
+    return from_file(file_vec, 0), from_file(file_vec, 6)
+end
+
+
+# m, n = 3, 4
+# deriv = Dict(
+#     :dA => randn(m,n),
+#     :db => randn(m),
+#     :dc => randn(n),
+#     :dx => randn(n),
+#     :dy => randn(m),
+#     :ds => randn(m)
+# )
+# adjoint = deepcopy(deriv)
+# derivatives_to_file("deriv.txt", deriv, adjoint)
+# d, a = derivatives_from_file("deriv.txt")
+# all([d[k] == deriv[k] for k in keys(d)])
 
 # A = sparse(randn(4,3))
 # b = randn(4)
