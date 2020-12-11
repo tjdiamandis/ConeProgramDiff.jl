@@ -63,7 +63,6 @@ end
 # A = sparse(randn(4,3))
 # b = randn(4)
 # c = randn(3)
-<<<<<<< HEAD
 # cp_to_file("test.txt", (A, b, c), dense=false)
 folder = "/home/csquires/Desktop"
 program_sparse = cp_from_file("$folder/test_sparse_py.txt", dense=false)
@@ -74,8 +73,3 @@ cp_to_file("$folder/test_sparse_jl.txt", sparse_params, opt_vals=sparse_optvals,
 dense_params = (program_dense[:A], program_dense[:b], program_dense[:c])
 dense_optvals = (program_dense[:x_star], program_dense[:y_star], program_dense[:s_star])
 cp_to_file("$folder/test_dense_jl.txt", dense_params, opt_vals=dense_optvals, dense=true)
-=======
-# _cp_to_file("nothing.txt", (A, b, c), opt_vals=(nothing, nothing, nothing), dense=false)
-# # cp_from_file("test.txt", dense=false)
-# iterate((nothing, nothing, nothing))
->>>>>>> beeaca6635408b38ffea4ee899d45602208f4b88
