@@ -37,7 +37,7 @@ function cp_from_file(file; dense=true)
         m,n = length(b), length(c)
         A = reshape(A_flat, (m,n))
     else
-        ~(nvars in [6, 8]) && throw(ArgumentError("Invalid file"))
+        ~(nvars in [5, 8]) && throw(ArgumentError("Invalid file"))
         offset = 2
         A_row_inds = parse.(Int, split(file_vec[1], '\t'))
         A_col_inds = parse.(Int, split(file_vec[2], '\t'))
