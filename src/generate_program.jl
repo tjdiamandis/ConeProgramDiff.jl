@@ -5,12 +5,12 @@ using DelimitedFiles
 #  st Ax + s = b
 #          s in K
 # K is a convex cone (product of given cones)
-function random_cone_program(dims, cone_dict)
+function random_cone_program(dims, cone_prod)
     m,n = dims
 
     # Break into ortho parts in K and in K*
     z = randn(m)
-    s_star = _pi(z, cone_dict)
+    s_star = project_onto_cone(z, cone_prod)
     y_star = z - s_star
     A = sparse(randn(dims))
     x_star = randn(n)

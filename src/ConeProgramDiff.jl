@@ -1,14 +1,19 @@
 module ConeProgramDiff
 
-using LinearAlgebra, SparseArrays       #stdlib
-using JuMP, MathOptInterface            #Opt utils
-using SCS, ECOS, Hypatia                #Solvers
+using LinearAlgebra, SparseArrays                       #stdlib
+using JuMP, MathOptInterface, MathOptSetDistances       #Opt utils
+using IterativeSolvers
+using SCS, ECOS, Hypatia                                #Solvers
 
 const MOI = MathOptInterface
+const MOSD = MathOptSetDistances
 
-# include("cone_solve.jl")
+include("utils.jl")
+include("cones.jl")
+include("cone_solve.jl")
 include("generate_program.jl")
-
-# export project_onto_cone
+export random_cone_program
+export solve_and_diff
+export project_onto_cone
 
 end

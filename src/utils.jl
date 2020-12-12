@@ -1,4 +1,3 @@
-
 # Vector <-> matrix
 vec_symm = MOSD.vec_symm
 unvec_symm = MOSD.unvec_symm
@@ -38,7 +37,7 @@ function cp_from_file(file; dense=true)
         m,n = length(b), length(c)
         A = reshape(A_flat, (m,n))
     else
-        ~(nvars in [6, 8]) && throw(ArgumentError("Invalid file"))
+        ~(nvars in [5, 8]) && throw(ArgumentError("Invalid file"))
         offset = 2
         A_row_inds = parse.(Int, split(file_vec[1], '\t'))
         A_col_inds = parse.(Int, split(file_vec[2], '\t'))
@@ -83,40 +82,6 @@ function derivatives_from_file(file)
         return ret
     end
 
-    # derivative, offset
+    # derivative, adjoint
     return from_file(file_vec, 0), from_file(file_vec, 6)
 end
-
-
-# m, n = 3, 4
-# deriv = Dict(
-#     :dA => randn(m,n),
-#     :db => randn(m),
-#     :dc => randn(n),
-#     :dx => randn(n),
-#     :dy => randn(m),
-#     :ds => randn(m)
-# )
-# adjoint = deepcopy(deriv)
-# derivatives_to_file("deriv.txt", deriv, adjoint)
-# d, a = derivatives_from_file("deriv.txt")
-# all([d[k] == deriv[k] for k in keys(d)])
-
-# A = sparse(randn(4,3))
-# b = randn(4)
-# c = randn(3)
-
-# cp_to_file("test.txt", (A, b, c), dense=false)
-# folder = "/home/csquires/Desktop"
-# program_sparse = cp_from_file("$folder/test_sparse_py.txt", dense=false)
-# program_dense = cp_from_file("$folder/test_dense_py.txt", dense=true)
-# sparse_params = (program_sparse[:A], program_sparse[:b], program_sparse[:c])
-# sparse_optvals = (program_sparse[:x_star], program_sparse[:y_star], program_sparse[:s_star])
-# cp_to_file("$folder/test_sparse_jl.txt", sparse_params, opt_vals=sparse_optvals, dense=false)
-# dense_params = (program_dense[:A], program_dense[:b], program_dense[:c])
-# dense_optvals = (program_dense[:x_star], program_dense[:y_star], program_dense[:s_star])
-# cp_to_file("$folder/test_dense_jl.txt", dense_params, opt_vals=dense_optvals, dense=true)
-
-# _cp_to_file("nothing.txt", (A, b, c), opt_vals=(nothing, nothing, nothing), dense=false)
-# # cp_from_file("test.txt", dense=false)
-# iterate((nothing, nothing, nothing))
