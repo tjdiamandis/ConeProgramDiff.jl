@@ -82,6 +82,6 @@ function derivatives_from_file(file)
         return ret
     end
 
-    # derivative, offset
+    # derivative, adjoint
     return from_file(file_vec, 0), from_file(file_vec, 6)
 end
