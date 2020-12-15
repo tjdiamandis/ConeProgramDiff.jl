@@ -337,6 +337,12 @@ git-tree-sha1 = "e05c53ebc86933601d36212a93b39144a2733493"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.1.1"
 
+[[Roots]]
+deps = ["Printf"]
+git-tree-sha1 = "8f743e4f4368d1d753f3806bf635899dad6b4847"
+uuid = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+version = "1.0.7"
+
 [[SCS]]
 deps = ["BinaryProvider", "Libdl", "LinearAlgebra", "MathOptInterface", "MathProgBase", "Requires", "SCS_GPU_jll", "SCS_jll", "SparseArrays"]
 git-tree-sha1 = "efc1cf417dffb455b74a3d48857ae418098fc8a1"
