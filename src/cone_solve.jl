@@ -1,116 +1,135 @@
-#
-# diffcp.ZERO for the zero cone,
-# diffcp.POS for the positive orthant,
-# diffcp.SOC for a product of SOC cones,
-# diffcp.PSD for a product of PSD cones, and
-# diffcp.EXP for a product of exponential cones.
+const SUPPORTED_SOLVERS = Dict(
+    "ECOS" => ECOS.Optimizer,
+    "Hypatia" => Hypatia.Optimizer,
+    "SCS" => SCS.Optimizer
+)
 
-# TODO: Maybe say zero_cone instead of zero
-# TODO: cone_dict(ConeProgramDiff.zero_cone => dim)
-@enum Cone zero pos
-
-
-function Base.in(vec::Vector, cone::Cone)
-    if cone == zero
-        return all(vec .== 0)
-    end
-end
-
-function add_constraint!(model, s, cone)
-    if cone == zero
-        @constraint(model, s .== 0)
-    else
-
-    end
-end
-
-
-model = Model(Hypatia.Optimizer)
-@variable(model, x[1:10])
-@constaint(A*x + s .== c)
-
-# TODO: Type function
-function solve_and_diff(A, b, c, cone_dict, warm_start=nothing, solver=nothing) T <: Float
+# TODO: Type function params A,b,c
+function solve_and_diff(
+    A::Array{S, 2}, b::Vector{S}, c::Vector{S}, cone_prod::Vector{T}; kwargs...
+) where {T <: MOI.AbstractVectorSet, S <: AbstractFloat}
+    kwargs = Dict(kwargs)
     m,n = size(A)
-    # Cone dict check: valid cones and dimension match
-    @assert all([c in CONES for (c, n) in cone_dict])
-    @assert sum([n for (c, n) in cone_dict]) == m
-    # dimension check
-    @assert length(b) == m
-    @assert length(c) == n
 
-    # Solver select
-    # TODO: Potentially allow more cones for Hypatia
-    if solver == "Hypatia"
-        model = Model(Hypatia.Optimizer)
-    elseif solver == "ECOS"
-        model = Model(ECOS.Optimizer)
-    elseif solver == "SCS" || isnothing(solver)
-        model = Model(SCS.Optimizer)
-    else
+    # Arguments check
+    (length(b) == m && length(c) == n) || throw(DimensionMismatch("Mismatch between A, b, c"))
+    all([typeof(c) <: SUPPORTED_INPUT_SETS for c in cone_prod]) || throw(ArgumentError("Unsupported cones"))
+    all([MOI.dimension(c) > 0 for c in cone_prod]) || throw(ArgumentError("Cones must have nonzero dimension"))
+    sum([MOI.dimension(c) for c in cone_prod]) == m || throw(DimensionMismatch("Mismatch between dimension of c and cone"))
+    if haskey(kwargs, :solver) && kwargs[:solver] in keys(SUPPORTED_SOLVERS)
+        optimizer = SUPPORTED_SOLVERS[solver]
+        # TODO: check cone_prod for each solver
+    elseif haskey(kwargs, :solver)
         throw(ArgumentError("Invalid solver"))
+    else
+        optimizer = SCS.Optimizer
     end
 
-    # Model
+    # TODO: add warm start??
+    # TODO: add lsqr option
+    return _solve_and_diff(A, b, c, cone_prod, nothing, optimizer, false)
+end
+
+function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
+    m,n = size(A)
+    typeof(A) <: SparseMatrixCSC && dropzeros!(A)
+    x_star, y_star, s_star = solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer)
+
+    Q = spzeros(m+n+1,m+n+1)
+    Q[1:n,n+1:n+m]      .= A'
+    Q[n+1:n+m,1:n]      .= -A
+    Q[n+1:n+m,m+n+1]    .= b
+    Q[m+n+1,n+1:n+m]    .= -b
+    Q[1:n,m+n+1]        .= c
+    Q[m+n+1,1:n]        .= -c
+
+    u, v, w = (x_star, y_star - s_star, 1.0)
+    DπKdual_v = d_project_onto_cone(v, [MOI.dual_set(c) for c in cone_prod])
+
+    function pullback(dx)
+        # Assume that dy = ds = 0
+        dz = [
+            dx;
+            zeros(length(y_star));
+            -x_star' * dx
+        ]
+        Pi_z = pi_z(u, v, w, cone_prod)
+
+        M = (Q - I) * dpi_z(u, v, w, cone_prod) + I
+        g = use_lsqr ? lsqr(-M', dz, atol=1e-10, btol=1e-10) : -M' \ dz
+
+        # TODO: make more efficient by only pulling needed cols/rows
+        dQ = g * pi_z(u, v, w, cone_prod)'
+        dA = dQ[1:n,n+1:n+m]'  - dQ[n+1:n+m,1:n]    # dQ12' - dQ21
+        db = dQ[n+1:n+m,m+n+1] - dQ[m+n+1,n+1:n+m]  # dQ23 - dQ32'
+        dc = dQ[1:n,m+n+1]     - dQ[m+n+1,1:n]      # dQ13 - dQ31'
+        return dA, db, dc
+    end
+
+    function pushforward(dA, db, dc)
+        dQ = spzeros(n+m+1, n+m+1)
+        dQ[1:n,n+1:n+m]      .= dA'
+        dQ[n+1:n+m,1:n]      .= -dA
+        dQ[n+1:n+m,m+n+1]    .= db
+        dQ[m+n+1,n+1:n+m]    .= -db #dont use tranpose bc of broadcast
+        dQ[1:n,m+n+1]        .= dc
+        dQ[m+n+1,1:n]        .= -dc
+
+        M = (Q - I) * dpi_z(u, v, w, cone_prod) + I
+        g = dQ*pi_z(u, v, w, cone_prod)
+        # dz = -M \ g
+        dz = lsqr(-M, g, atol=1e-10, btol=1e-10)
+        @views du, dv, dw = dz[1:n], dz[n+1:n+m], dz[n+m+1]
+        dx = du .- dw*x_star
+        dy = DπKdual_v*dv - dw*y_star
+        ds = DπKdual_v*dv - dv - dw*s_star
+        return dx, dy, ds
+    end
+    return x_star, y_star, s_star, pushforward, pullback
+end
+
+function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
+    m,n = size(A)
+    model = Model()
+    set_optimizer(model, optimizer_with_attributes(SCS.Optimizer, "eps" => 1e-10, "max_iters" => 100000, "verbose" => 0))
     @variable(model, x[1:n])
     @variable(model, s[1:m])
-    @objective(model, c'*x)
-    @constaint(A*x + s .== c)
-
+    @objective(model, Min, c'*x)
+    con = @constraint(model, A*x + s .== b)
     curr = 1
-    for (cone, dim) in cone_dict
-        #TODO: overload in for cones?
-        add_constraint(model, s[], cone)
-        @constraint(model, s[curr:curr+dim] in cone)
-        curr += dim
+    for cone in cone_prod
+        @constraint(model, s[curr:curr+cone.dimension-1] in cone)
+        curr += cone.dimension
+    end
+    optimize!(model)
+    if !(termination_status(model) in [MOI.OPTIMAL, MOI.ALMOST_OPTIMAL])
+        error("Model not solved correctly.
+               Termination status: $(termination_status(model))")
+    end
+    if termination_status(model) != MOI.OPTIMAL
+        @warn "Maximum iterations reached. Set 'max_iters' to increase accuracy"
     end
 
-    optimize!(model)
-    xstar = value.(x)
-
+    # primal_status(model)
+    # dual_status(model)
+    y = isapprox(A'* dual.(con) + c, zeros(length(c)),atol=1e-6) ? dual.(con) : -dual.(con)
+    return value.(x), y, value.(s)
 end
 
-
-function test_solve()
-    items  = [:Gold, :Silver, :Bronze]
-    values = Dict(:Gold => 5.0,  :Silver => 3.0,  :Bronze => 1.0)
-    weight = Dict(:Gold => 2.0,  :Silver => 1.5,  :Bronze => 0.3)
-
-    model = Model(SCS.Optimizer)
-    @variable(model, 0 <= take[items] <= 1)  # Define a variable for each item
-    @objective(model, Max, sum(values[item] * take[item] for item in items))
-    @constraint(model, sum(weight[item] * take[item] for item in items) <= 3)
-    optimize!(model)
-    println(value.(take))
-    return value
+function pi_z(u, v, w, cone_prod; dual=false)
+    cone = dual ? [MOI.dual_set(c) for c in cone_prod] : cone_prod
+    return vcat(
+        u,
+        project_onto_cone(v, cone),
+        max(w, 0.0)
+    )
 end
 
-items  = [:Gold, :Silver, :Bronze]
-vals = Dict(:Gold => 5.0,  :Silver => 3.0,  :Bronze => 1.0)
-weight = Dict(:Gold => 2.0,  :Silver => 1.5,  :Bronze => 0.3)
-model = Model(SCS.Optimizer)
-@variable(model, 0 <= take[items] <= 1)  # Define a variable for each item
-@objective(model, Max, sum(vals[item] * take[item] for item in items))
-@variable(model, x[1:10])
-x
-@constraint(model, x in zero)
-take
-# setup model
-V = rand(2, 3)
-
-model = Model(Hypatia.Optimizer)
-@variable(model, x[1:3] >= 0)
-@constraint(model, sum(x) == 5)
-@variable(model, hypo)
-@objective(model, Max, hypo)
-Q = V * diagm(x) * V'
-@code_warntype @constraint(model, vcat(hypo, [Q[i, j] for i in 1:2 for j in 1:i]...) in MOI.RootDetConeTriangle(2))
-@variable(model, hypo)
-
-# solve
-optimize!(model)
-termination_status(model)
-objective_value(model)
-value.(x)
-
-([2,1] in MOI.RootDetConeTriangle(2))
+function dpi_z(u, v, w, cone_prod; dual=false)
+    cone = dual ? [MOI.dual_set(c) for c in cone_prod] : cone_prod
+    return blockdiag(
+        sparse(Matrix{Float64}(I, length(u), length(u))),
+        d_project_onto_cone(v, cone),
+        sparse(Matrix{Float64}(I, 1,1))
+    )
+end
