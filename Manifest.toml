@@ -1,5 +1,11 @@
 # This file is machine-generated - editing it directly is not advised
 
+[[AbstractTrees]]
+deps = ["Markdown"]
+git-tree-sha1 = "33e450545eaf7699da1a6e755f9ea65f14077a45"
+uuid = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
+version = "0.3.3"
+
 [[Artifacts]]
 deps = ["Pkg"]
 git-tree-sha1 = "c30985d8821e0cd73870b17b0ed0ce6dc44cb744"
@@ -79,6 +85,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "8e695f735fca77e9708e795eda62afdb869cbb70"
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 version = "0.3.4+0"
+
+[[Convex]]
+deps = ["AbstractTrees", "BenchmarkTools", "LinearAlgebra", "MathOptInterface", "OrderedCollections", "SparseArrays", "Test"]
+git-tree-sha1 = "2cb7d5ec0f57a98f83d59471c519b7aded1925d5"
+uuid = "f65535da-76fb-5f13-bab9-19810c17039a"
+version = "0.13.8"
 
 [[DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
