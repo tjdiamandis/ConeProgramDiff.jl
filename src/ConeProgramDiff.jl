@@ -2,8 +2,8 @@ module ConeProgramDiff
 
 using LinearAlgebra, SparseArrays                       #stdlib
 using JuMP, MathOptInterface, MathOptSetDistances       #Opt utils
-using IterativeSolvers
-using SCS, ECOS, Hypatia                                #Solvers
+using IterativeSolvers, Roots                           #Eq solvers
+using SCS, ECOS, Hypatia                                #Opt solvers
 
 const MOI = MathOptInterface
 const MOSD = MathOptSetDistances
