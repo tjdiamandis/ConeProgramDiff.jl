@@ -6,8 +6,8 @@ const SUPPORTED_SOLVERS = Dict(
 
 # TODO: Type function params A,b,c
 function solve_and_diff(
-    A, b, c, cone_prod::Vector{T}; kwargs...
-) where {T <: MOI.AbstractVectorSet}
+    A::Array{S, 2}, b::Vector{S}, c::Vector{S}, cone_prod::Vector{T}; kwargs...
+) where {T <: MOI.AbstractVectorSet, S <: AbstractFloat}
     kwargs = Dict(kwargs)
     m,n = size(A)
 
@@ -102,11 +102,11 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
         curr += cone.dimension
     end
     optimize!(model)
-    if ~(termination_status(model) in [MOI.OPTIMAL, MOI.ALMOST_OPTIMAL])
+    if !(termination_status(model) in [MOI.OPTIMAL, MOI.ALMOST_OPTIMAL])
         error("Model not solved correctly.
                Termination status: $(termination_status(model))")
     end
-    if termination_status(model) ~= MOI.OPTIMAL
+    if termination_status(model) != MOI.OPTIMAL
         @warn "Maximum iterations reached. Set 'max_iters' to increase accuracy"
     end
 
