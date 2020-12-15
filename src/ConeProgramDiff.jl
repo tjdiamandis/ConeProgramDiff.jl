@@ -12,8 +12,9 @@ include("utils.jl")
 include("cones.jl")
 include("cone_solve.jl")
 include("generate_program.jl")
+
 export random_cone_program
 export solve_and_diff
-export project_onto_cone
+export project_onto_cone, d_project_onto_cone
 
 end
