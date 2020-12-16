@@ -25,10 +25,16 @@ function solve_and_diff(
         optimizer = SCS.Optimizer
     end
 
-    # TODO: add warm start??
-    # TODO: add lsqr as option
-    return _solve_and_diff(A, b, c, cone_prod, nothing, optimizer, false)
+    warm_start = haskey(kwargs, :warm_start) ? kwargs[:warm_start] : nothing
+    if haskey(kwargs, :method) && kwars[:method] == "dense"
+        use_lsqr = false
+    else
+        use_lsqr = true
+    end
+
+    return _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
 end
+
 
 function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
     m,n = size(A)
@@ -79,8 +85,8 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
 
         M = (Q - I) * dpi_z(u, v, w, cone_prod) + I
         g = dQ*pi_z(u, v, w, cone_prod)
-        # dz = -M \ g
-        dz = lsqr(-M, g, atol=1e-10, btol=1e-10)
+
+        dz = use_lsqr ? lsqr(-M, g, atol=1e-10, btol=1e-10) : -M \ g
         @views du, dv, dw = dz[1:n], dz[n+1:n+m], dz[n+m+1]
         dx = du .- dw*x_star
         dy = DπKdual_v*dv - dw*y_star
@@ -89,6 +95,7 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
     end
     return x_star, y_star, s_star, pushforward, pullback
 end
+
 
 function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     # TODO: potentially play with the scale depending on the cones?
@@ -123,6 +130,7 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     return value.(x), y, value.(s)
 end
 
+
 function pi_z(u, v, w, cone_prod; dual=false)
     cone = dual ? [MOI.dual_set(c) for c in cone_prod] : cone_prod
     return vcat(
@@ -131,6 +139,7 @@ function pi_z(u, v, w, cone_prod; dual=false)
         max(w, 0.0)
     )
 end
+
 
 function dpi_z(u, v, w, cone_prod; dual=false)
     cone = dual ? [MOI.dual_set(c) for c in cone_prod] : cone_prod

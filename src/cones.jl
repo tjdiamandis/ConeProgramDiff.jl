@@ -50,7 +50,7 @@ function MOSD.unvec_symm(x, dim)
    for i in 1:dim
        for j in 1:i
            # @inbounds X[j,i] = X[i,j] = x[(i-1)*dim-div((i-1)*i, 2)+j]
-           @inbounds X[j,i] = X[i,j] = x[idx]
+           X[j,i] = X[i,j] = x[idx]
            idx += 1
        end
    end

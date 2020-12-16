@@ -20,4 +20,4 @@ export project_onto_cone, d_project_onto_cone
 end
 
 
-# TODO: Check out https://github.com/Jutho/LinearMaps.jl
+# TODO: Check out https://github.com/Jutho/LinearMaps.jl for projections
