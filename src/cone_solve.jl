@@ -26,7 +26,7 @@ function solve_and_diff(
     end
 
     # TODO: add warm start??
-    # TODO: add lsqr option
+    # TODO: add lsqr as option
     return _solve_and_diff(A, b, c, cone_prod, nothing, optimizer, false)
 end
 
@@ -44,7 +44,6 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
     Q[m+n+1,1:n]        .= -c
 
     u, v, w = (x_star, y_star - s_star, 1.0)
-    DπKdual_v = d_project_onto_cone(v, [MOI.dual_set(c) for c in cone_prod])
 
     function pullback(dx)
         # Assume that dy = ds = 0
@@ -67,6 +66,9 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
     end
 
     function pushforward(dA, db, dc)
+        # TODO: Could we compute a matrix vector product instead of full matrix?
+        DπKdual_v = d_project_onto_cone(v, [MOI.dual_set(c) for c in cone_prod])
+
         dQ = spzeros(n+m+1, n+m+1)
         dQ[1:n,n+1:n+m]      .= dA'
         dQ[n+1:n+m,1:n]      .= -dA
@@ -93,7 +95,7 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     #       e.g. see https://github.com/jump-dev/Convex.jl/issues/104
     #       Essentially want to have the primal and dual res down at the same rate
     #           primal slower -> inc. scale
-    #           dual slower -> dec. scale 
+    #           dual slower -> dec. scale
     m,n = size(A)
     model = Model()
     set_optimizer(model, optimizer_with_attributes(SCS.Optimizer, "eps" => 1e-10, "max_iters" => 100000, "verbose" => 0))
