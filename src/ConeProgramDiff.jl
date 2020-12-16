@@ -18,3 +18,6 @@ export solve_and_diff
 export project_onto_cone, d_project_onto_cone
 
 end
+
+
+# TODO: Check out https://github.com/Jutho/LinearMaps.jl
