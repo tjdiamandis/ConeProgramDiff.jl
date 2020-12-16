@@ -30,6 +30,7 @@ const SUPPORTED_INPUT_SETS = Union{
 }
 
 const EXP_CONE_THRESH = 1e-10
+const POW_CONE_THRESH = 1e-14
 
 
 function project_onto_cone(x, cone_prod)
@@ -131,6 +132,54 @@ function get_exp_proj_case4(v; dual=false)
 end
 
 
+# K = {(x,y,z) | x^a * y^(1-a) >= |z|, x>=0, y>=0}
+# K* = {(u,v,w) | (u/a)^a * (v/(1-a))^(1-a) >= |w|, u>=0, v>=0}
+function _proj_pow_cone(v, α; dual=false)
+    # Prop 2.2 of https://link.springer.com/article/10.1007/s00186-015-0514-0
+    # v = dual ? -v : v
+    x, y, z = dual ? -v : v
+
+    if in_pow_cone(x, y, z, α)
+        # if in power cone
+        ret = [x; y; z]
+    elseif in_pow_cone_polar(x, y, z, α)
+        # if in polar cone Ko = -K*
+        ret = zeros(3)
+    elseif abs(z) <= 1e-6#POW_CONE_THRESH
+        # if not in K, Ko and z = 0
+        ret = [max(x,0); max(y,0); 0.0]
+    else
+        ret = _proj_pow_cone_case4(x, y, z, α)
+    end
+
+    return dual ? v + ret : ret
+end
+
+
+function in_pow_cone(x, y, z, α)
+    return x >= 0 && y >= 0 && POW_CONE_THRESH + x^α * y^(1-α) >= abs(z)
+end
+
+
+function in_pow_cone_polar(x, y, z, α)
+    # -v = -[x;y;z] in K*(α)
+    return (x <= 0 && y <=0 &&
+        POW_CONE_THRESH + (-x)^α * (-y)^(1-α) >= α^α * (1-α)^(1-α) * abs(z))
+end
+
+
+function _proj_pow_cone_case4(x, y, z, α)
+    Phi(x,y,z,α,r) = 0.5*(Phi_prod(x,α,z,r)^α * Phi_prod(y,1-α,z,r)^(1-α)) - r
+    Phi_prod(xi,αi,z,r) = (xi + sqrt(xi^2 + 4*αi*r*(abs(z) - r)))
+
+    lb_ub = (0.0+POW_CONE_THRESH, abs(z)-POW_CONE_THRESH)
+    # println(Phi(x,y,z,α,lb_ub[1]), Phi(x,y,z,α,lb_ub[2]))
+    r = find_zero(r -> Phi(x,y,z,α,r), lb_ub, verbose=false)
+
+    return [0.5*Phi_prod(x,α,z,r); 0.5*Phi_prod(y,1-α,z,r); sign(z)*r]
+end
+
+
 # TODO: can probably write this code more efficiently? lots of repeats
 function d_project_onto_cone(x, cone_prod)
     # TODO: fix to be undefined.
@@ -180,7 +229,7 @@ function _d_proj_exp_cone(v; dual=false)
     if in_exp_cone(v)
         return dual ? zeros(3,3) : Matrix{Float64}(I, 3, 3)
     elseif in_exp_cone_dual(v)
-        return dual ? 2*Matrix{Float64}(I, 3, 3) : -Matrix{Float64}(I, 3, 3)
+        return dual ? Matrix{Float64}(I, 3, 3) : zeros(3,3)
     elseif v[1] <= 0 && v[2] <= 0 #TODO: threshold here??
         vp = diagm([1; Ip(v[2]); Ip(v[3])])
         return dual ? I - vp : vp
@@ -209,8 +258,75 @@ function get_exp_d_proj_case4(v; dual=false)
 end
 
 
+function _d_proj_pow_cone(v, α; dual=false)
+    # Thm 3.1 of https://link.springer.com/article/10.1007/s00186-015-0514-0
+    x, y, z = dual ? -v : v
+
+    if in_pow_cone(x, y, z, α)
+        # if in power cone
+        ret = Matrix{Float64}(I, 3, 3)
+    elseif in_pow_cone_polar(x, y, z, α)
+        # if in polar cone Ko = -K*
+        ret = zeros(3,3)
+    elseif abs(z) <= POW_CONE_THRESH
+        # if not in K, Ko and z = 0
+        ret = _d_proj_pow_cone_case3(x, y, z, α)
+    else
+        ret = _d_proj_pow_cone_case4(x, y, z, α)
+    end
+
+    return dual ? Matrix{Float64}(I, 3, 3) - ret : ret
+end
+
+
+function _d_proj_pow_cone_case3(x, y, z, α)
+    v = [x; y]
+    I(t) = t > 0 ? 1 : 0
+    αs = [α; 1-α]
+
+    if sum(αs[v .> 0]) > sum(αs[v .< 0])
+        d = 1
+    elseif sum(αs[v .> 0]) < sum(αs[v .< 0])
+        d = 0
+    else
+        num = reduce(*, (-v[v .< 0]).^αs[v .< 0])
+        denom = reduce(*, v[v .> 0]^αs[v .> 0]) * reduce(*, αs[v .< 0]^αs[v .< 0])
+        d = 1/((num/denom)^2 + 1)
+    end
+    return diagm([I(x), I(y), d])
+end
+
+
+function _d_proj_pow_cone_case4(x, y, z, α)
+    Phi(x,y,z,α,r) = 0.5*(Phi_prod(x,α,z,r)^α * Phi_prod(y,1-α,z,r)^(1-α)) - r
+    Phi_prod(xi,αi,z,r) = (xi + sqrt(xi^2 + 4*αi*r*(abs(z) - r)))
+
+    lb_ub = (0.0+POW_CONE_THRESH, abs(z)-POW_CONE_THRESH)
+    r = find_zero(r -> Phi(x,y,z,α,r), lb_ub, verbose=false)
+
+    za = abs(z)
+    gx = sqrt(x^2 + 4*α*r*(za - r))
+    gy = sqrt(y^2 + 4*(1-α)*r*(za - r))
+    fx = 0.5*(x + gx)
+    fy = 0.5*(y + gy)
+
+    β = 1-α
+    T_neg = (α*x/gx + β*y/gy)
+    L = 2*(za - r) / (za + (za - 2r) * T_neg)
+    T = -T_neg
+    J_ii(w, γ, g) = 0.5 + w/2g + γ^2*(za - 2r)*r*L/g^2
+    J_ij = α*β*(za - 2r)*r*L/(gx*gy)
+    J = [
+        J_ii(x, α, gx)      J_ij                sign(z)*α*r*L/gx;
+        J_ij                J_ii(y, β, gy)      sign(z)*β*r*L/gy;
+        sign(z)*α*r*L/gx    sign(z)*β*r*L/gy    r/za*(1+T*L)
+    ]
+    return J
+end
+
+
 function MOSD.projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.Reals) where {T}
-    return ones(T, (length(v), length(v)))
+    return Matrix{Float64}(I, (length(v), length(v)))
 end
 
 function MOSD.projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.Zeros) where {T}
