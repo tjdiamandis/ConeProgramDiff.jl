@@ -1,8 +1,3 @@
-# Vector <-> matrix
-vec_symm = MOSD.vec_symm
-unvec_symm = MOSD.unvec_symm
-
-
 # Write and read CP from file
 function cp_to_file(file, params_dict; dense=true)
     A, b, c = params_dict[:A], params_dict[:b], params_dict[:c]

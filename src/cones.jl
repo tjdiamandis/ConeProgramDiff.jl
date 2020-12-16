@@ -32,6 +32,51 @@ const SUPPORTED_INPUT_SETS = Union{
 const EXP_CONE_THRESH = 1e-10
 const POW_CONE_THRESH = 1e-14
 
+# Fixes error in MOSD
+"""
+   unvec_symm(x, dim)
+Returns a dim-by-dim symmetric matrix corresponding to `x`.
+`x` is a vector of length dim*(dim + 1)/2, corresponding to a symmetric matrix
+X = [ X11 X12 ... X1k
+       X21 X22 ... X2k
+       ...
+       Xk1 Xk2 ... Xkk ],
+where
+vec(X) = (X11, X21, ..., Xk1, X22, X32, ..., Xkk)
+"""
+function MOSD.unvec_symm(x, dim)
+   X = zeros(dim, dim)
+   idx = 1
+   for i in 1:dim
+       for j in 1:i
+           # @inbounds X[j,i] = X[i,j] = x[(i-1)*dim-div((i-1)*i, 2)+j]
+           @inbounds X[j,i] = X[i,j] = x[idx]
+           idx += 1
+       end
+   end
+   X /= sqrt(2)
+   X[LinearAlgebra.diagind(X)] *= sqrt(2)
+   return X
+end
+
+
+"""
+   vec_symm(X)
+Returns a vectorized representation of a symmetric matrix `X`.
+`vec(X) = (X11, X21, ..., Xk1, X22, X32, ..., Xkk)`
+"""
+function MOSD.vec_symm(X)
+    X = copy(X)
+    X *= sqrt(2)
+    X[LinearAlgebra.diagind(X)] .= X[LinearAlgebra.diagind(X)] ./ sqrt(2)
+   return X[LinearAlgebra.tril(trues(size(X)))']
+end
+
+
+# Vector <-> matrix
+vec_symm = MOSD.vec_symm
+unvec_symm = MOSD.unvec_symm
+
 
 function project_onto_cone(x, cone_prod)
     # TODO: fix to be undefined.
@@ -331,4 +376,13 @@ end
 
 function MOSD.projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.Zeros) where {T}
     return zeros(T, (length(v), length(v)))
+end
+
+
+function MOSD. projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.PositiveSemidefiniteConeTriangle) where {T}
+    dim = isqrt(2*length(v))
+    X = unvec_symm(v, dim)
+    λ, U = LinearAlgebra.eigen(X)
+    D = LinearAlgebra.Diagonal(max.(λ, 0))
+
 end
