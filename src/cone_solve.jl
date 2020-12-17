@@ -113,15 +113,8 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     con = @constraint(model, A*x + s .== b)
     curr = 1
     for cone in cone_prod
-        if (typeof(cone) <: MOI.PositiveSemidefiniteConeTriangle)
-            dimension = Int64(cone.side_dimension * (cone.side_dimension + 1) / 2)
-        elseif (typeof(cone) <: MOI.ExponentialCone)
-            dimension = 3
-        else
-            dimension = cone.dimension
-        end
-        @constraint(model, s[curr:curr+dimension-1] in cone)
-        curr += dimension
+        @constraint(model, s[curr:curr+MOI.dimension(cone)-1] in cone)
+        curr += MOI.dimension(cone)
     end
     optimize!(model)
     if !(termination_status(model) in [MOI.OPTIMAL, MOI.ALMOST_OPTIMAL])
