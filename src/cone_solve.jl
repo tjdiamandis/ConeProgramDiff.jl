@@ -113,8 +113,14 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     con = @constraint(model, A*x + s .== b)
     curr = 1
     for cone in cone_prod
+<<<<<<< HEAD
         @constraint(model, s[curr:curr+MOI.dimension(cone)-1] in cone)
         curr += MOI.dimension(cone)
+=======
+        dimension = MOI.dimension(cone)
+        @constraint(model, s[curr:curr+dimension-1] in cone)
+        curr += dimension
+>>>>>>> 48a8e9e17107a3784c3c370b7605b1c4d6a671a2
     end
     optimize!(model)
     if !(termination_status(model) in [MOI.OPTIMAL, MOI.ALMOST_OPTIMAL])
