@@ -105,7 +105,8 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     #           dual slower -> dec. scale
     m,n = size(A)
     model = Model()
-    set_optimizer(model, optimizer_with_attributes(SCS.Optimizer, "eps" => 1e-10, "max_iters" => 100000, "verbose" => 0))
+    set_optimizer(model, optimizer_with_attributes(
+        SCS.Optimizer, "eps" => 1e-10, "max_iters" => 100000, "verbose" => 0))
     @variable(model, x[1:n])
     @variable(model, s[1:m])
     @objective(model, Min, c'*x)
