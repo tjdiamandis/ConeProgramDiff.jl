@@ -4,6 +4,7 @@ using LinearAlgebra, SparseArrays                       #stdlib
 using JuMP, MathOptInterface, MathOptSetDistances       #Opt utils
 using IterativeSolvers, Roots                           #Eq solvers
 using SCS, ECOS, Hypatia                                #Opt solvers
+using Random
 
 const MOI = MathOptInterface
 const MOSD = MathOptSetDistances
