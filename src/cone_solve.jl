@@ -39,7 +39,7 @@ end
 function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
     m,n = size(A)
     typeof(A) <: SparseMatrixCSC && dropzeros!(A)
-    x_star, y_star, s_star = solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer)
+    x_star, y_star, s_star, sol = solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer)
 
     Q = spzeros(m+n+1,m+n+1)
     Q[1:n,n+1:n+m]      .= A'
@@ -91,7 +91,66 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
         ds = DπKdual_v*dv - dv - dw*s_star
         return dx, dy, ds
     end
-    return x_star, y_star, s_star, pushforward, pullback
+    return x_star, y_star, s_star, pushforward, pullback, sol
+end
+
+cone_order = Dict(
+    MOI.Zeros=>1,
+    MOI.Nonnegatives=>2,
+    MOI.SecondOrderCone=>3,
+    MOI.PositiveSemidefiniteConeTriangle=>4,
+    MOI.ExponentialCone=>5,
+    MOI.DualExponentialCone=>6,
+    MOI.PowerCone=>7
+)
+
+function reorder_opt_problem_scs(A, b, cones)
+    # sort the cones so that they're in the correct order
+    sort_ixs = sortperm(cones, by=cone->cone_order[typeof(cone)])
+    sorted_cones = cones[sort_ixs]
+
+    f = 0  # the number of zero cones
+    l = 0  # the number of linear cones
+    q = []  # the array of SOC sizes
+    s = []  # the array of SDC sizes
+    ep = 0  # the number of exponential cones
+    ed = 0  # the number of dual exponential cones
+    p = []  # the array of power cone parameters
+
+    # create the parameters for SCS
+    for cone in sorted_cones
+        if typeof(cone) <: MOI.Zeros
+            f += MOI.dimension(cone)
+        elseif typeof(cone) <: MOI.Nonnegatives
+            l += MOI.dimension(cone)
+        elseif typeof(cone) <: MOI.SecondOrderCone
+            push!(q, MOI.dimension(cone))
+        elseif typeof(cone) <: MOI.PositiveSemidefiniteConeTriangle
+            push!(s, MOI.dimension(cone))
+        elseif typeof(cone) <: MOI.ExponentialCone
+            ep += 1
+        elseif typeof(cone) <: MOI.DualExponentialCone
+            ep += 1
+        elseif typeof(cone) <: MOI.PowerCone
+            push!(p, MOI.dimension(a))
+        elseif typeof(cone) <: MOI.DualPowerCone
+            push!(p, -MOI.dimension(a))
+        end
+    end
+    cone_dict = Dict(:f=>f, :l=>l, :q=>q, :s=>s, :ep=>ep, :ed=>ed, :p=>p)
+
+    original_ixs = []
+    start_ix = 1
+    for cone in cones
+        end_ix = start_ix + MOI.dimension(cone) - 1
+        push!(original_ixs, start_ix:end_ix)
+        start_ix = end_ix + 1
+    end
+
+    index_map = [original_ixs[i] for i in sort_ixs]
+    index_map = collect(Iterators.flatten(index_map))
+
+    return A[index_map, :], b[index_map], cone_dict
 end
 
 
@@ -102,6 +161,13 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     #           primal slower -> inc. scale
     #           dual slower -> dec. scale
     m,n = size(A)
+
+    # A_reordered, b_reordered, cone_dict = reorder_opt_problem_scs(A, b, cone_prod)
+    # f, l, q, s = cone_dict[:f], cone_dict[:l], cone_dict[:q], cone_dict[:s]
+    # ep, ed, p = cone_dict[:ep], cone_dict[:ed], cone_dict[:p]
+    # sol = SCS_solve(SCS.DirectSolver, m, n, A_reordered, b_reordered, c, f, l, q, s, ep, ed, p)
+    # println(sol)
+
     model = Model()
     set_optimizer(model, optimizer_with_attributes(
         SCS.Optimizer, "eps" => 1e-10, "max_iters" => 100000, "verbose" => 0))
@@ -128,7 +194,7 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     # TODO: for some reason this fails when b is a sparse vector?
     #    Maybe interface directly with SCS?
     y = isapprox(A'* dual.(con) + c, zeros(length(c)), atol=1e-6) ? dual.(con) : -dual.(con)
-    return value.(x), y, value.(s)
+    return value.(x), y, value.(s), sol
 end
 
 
