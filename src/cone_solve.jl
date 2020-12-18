@@ -6,7 +6,7 @@ const SUPPORTED_SOLVERS = Dict(
 
 # TODO: Type function params A,b,c
 function solve_and_diff(
-    A::Array{S, 2}, b::Vector{S}, c::Vector{S}, cone_prod::Vector{T}; kwargs...
+    A::AbstractMatrix{S}, b::AbstractVector{S}, c::Vector{S}, cone_prod::Vector{T}; kwargs...
 ) where {T <: MOI.AbstractVectorSet, S <: AbstractFloat}
     kwargs = Dict(kwargs)
     m,n = size(A)
@@ -127,7 +127,9 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
 
     # primal_status(model)
     # dual_status(model)
-    y = isapprox(A'* dual.(con) + c, zeros(length(c)),atol=1e-6) ? dual.(con) : -dual.(con)
+    # TODO: for some reason this fails when b is a sparse vector?
+    #    Maybe interface directly with SCS?
+    y = isapprox(A'* dual.(con) + c, zeros(length(c)), atol=1e-6) ? dual.(con) : -dual.(con)
     return value.(x), y, value.(s)
 end
 
