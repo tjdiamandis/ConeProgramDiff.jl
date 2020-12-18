@@ -29,8 +29,8 @@ const SUPPORTED_INPUT_SETS = Union{
     SUPPORTED_NON_MOSD_INPUT_SETS
 }
 
-const EXP_CONE_THRESH = 1e-10
-const POW_CONE_THRESH = 1e-14
+const EXP_CONE_THRESH = 1e-8
+const POW_CONE_THRESH = 1e-8
 
 # Fixes √2 factor error in MOSD
 """
@@ -335,7 +335,7 @@ function _d_proj_pow_cone_case3(x, y, z, α)
         d = 0
     else
         num = reduce(*, (-v[v .< 0]).^αs[v .< 0])
-        denom = reduce(*, v[v .> 0]^αs[v .> 0]) * reduce(*, αs[v .< 0]^αs[v .< 0])
+        denom = reduce(*, v[v .> 0].^αs[v .> 0]) * reduce(*, αs[v .< 0].^αs[v .< 0])
         d = 1/((num/denom)^2 + 1)
     end
     return diagm([I(x), I(y), d])
