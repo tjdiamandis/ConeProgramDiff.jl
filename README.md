@@ -94,7 +94,7 @@ generates a random feasible cone program. This function returns a dictionary tha
 ```julia
 l1_minimization_program(dims)
 ```
-returns the parameters `A, b, c, cone_prod` of an \( \ell_1 \) minimization problem, where `size(A) = dims`. The function checks that `dims[1] >= dims[2]` and `rank(A) == dims[2]` so that this problem has a unique solution.
+returns the parameters `A, b, c, cone_prod` of an L1 minimization problem, where `size(A) = dims`. The function checks that `dims[1] >= dims[2]` and `rank(A) == dims[2]` so that this problem has a unique solution.
 
 ## Future Plans
 
