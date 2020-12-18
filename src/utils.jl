@@ -80,3 +80,97 @@ function derivatives_from_file(file)
     # derivative, adjoint
     return from_file(file_vec, 0), from_file(file_vec, 6)
 end
+
+
+
+function _vectorized_index_row_major(i, j)
+    if i <= j
+        k = div((j-1)*j, 2) + i
+    else
+        k = div((i-1)*i, 2) + j
+    end
+    return k
+end
+
+
+function index_map_to_row_major(dim)
+    return sortperm(index_map_to_col_major(dim))
+end
+
+
+function index_map_to_col_major(dim)
+    index_map = []
+    for i=1:dim
+        for j=i:dim
+            k = _vectorized_index_row_major(i, j)
+            push!(index_map, k)
+        end
+    end
+    index_map = sortperm(index_map)
+    return index_map
+end
+
+function rewrite_sdps_to_row_major!(A, b, cones)
+    i = 1
+    for cone in cones
+        if typeof(cone) <: MOI.PositiveSemidefiniteConeTriangle
+            d = MOI.dimension(cone)
+            s = cone.side_dimension
+            index_map = index_map_to_row_major(cone.side_dimension)
+            A[i:(i+d-1), :] .= A[i:(i+d-1), :][index_map, :]
+            b[i:(i+d-1)] .= b[i:(i+d-1)][index_map]
+        end
+        i += MOI.dimension(cone)
+    end
+end
+
+
+function rewrite_sdps_to_row_major(A, b, cones)
+    i = 1
+    A_ = copy(A)
+    b_ = copy(b)
+    for cone in cones
+        if typeof(cone) <: MOI.PositiveSemidefiniteConeTriangle
+            d = MOI.dimension(cone)
+            s = cone.side_dimension
+            index_map = index_map_to_row_major(cone.side_dimension)
+            A_[i:(i+d-1), :] .= A[i:(i+d-1), :][index_map, :]
+            b_[i:(i+d-1)] .= b[i:(i+d-1)][index_map]
+        end
+        i += MOI.dimension(cone)
+    end
+    return A_, b_
+end
+
+
+function rewrite_sdps_to_col_major!(A, b, cones)
+    i = 1
+    for cone in cones
+        if typeof(cone) <: MOI.PositiveSemidefiniteConeTriangle
+            d = MOI.dimension(cone)
+            s = cone.side_dimension
+            index_map = index_map_to_col_major(cone.side_dimension)
+            A[i:(i+d-1), :] .= A[i:(i+d-1), :][index_map, :]
+            b[i:(i+d-1)] .= b[i:(i+d-1)][index_map]
+        end
+        i += MOI.dimension(cone)
+    end
+end
+
+
+function rewrite_sdps_to_col_major(A, b, cones)
+    i = 1
+    A_ = copy(A)
+    b_ = copy(b)
+    for cone in cones
+        if typeof(cone) <: MOI.PositiveSemidefiniteConeTriangle
+            d = MOI.dimension(cone)
+            s = cone.side_dimension
+            index_map = index_map_to_col_major(cone.side_dimension)
+            A_ .= A[i:(i+d-1), :][index_map, :]
+            b_ .= b[i:(i+d-1)][index_map]
+        end
+        i += MOI.dimension(cone)
+    end
+    return A_, b_
+end

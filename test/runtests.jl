@@ -9,9 +9,9 @@ using Random
 const MOI = MathOptInterface
 const MOSD = MathOptSetDistances
 
-@testset "ConeProgramDiff.jl" begin
-    # Write your tests here.
-end
+# @testset "ConeProgramDiff.jl" begin
+#     # Write your tests here.
+# end
 
 @testset "Projections" begin
     include("projections.jl")
