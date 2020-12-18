@@ -111,11 +111,11 @@ function reorder_opt_problem_scs(A, b, cones)
 
     f = 0  # the number of zero cones
     l = 0  # the number of linear cones
-    q = []  # the array of SOC sizes
-    s = []  # the array of SDC sizes
+    q = Int[]  # the array of SOC sizes
+    s = Int[]  # the array of SDC sizes
     ep = 0  # the number of exponential cones
     ed = 0  # the number of dual exponential cones
-    p = []  # the array of power cone parameters
+    p = Float64[]  # the array of power cone parameters
 
     # create the parameters for SCS
     for cone in sorted_cones
@@ -162,11 +162,11 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     #           dual slower -> dec. scale
     m,n = size(A)
 
-    # A_reordered, b_reordered, cone_dict = reorder_opt_problem_scs(A, b, cone_prod)
-    # f, l, q, s = cone_dict[:f], cone_dict[:l], cone_dict[:q], cone_dict[:s]
-    # ep, ed, p = cone_dict[:ep], cone_dict[:ed], cone_dict[:p]
-    # sol = SCS_solve(SCS.DirectSolver, m, n, A_reordered, b_reordered, c, f, l, q, s, ep, ed, p)
-    # println(sol)
+    A_reordered, b_reordered, cone_dict = reorder_opt_problem_scs(A, b, cone_prod)
+    f, l, q, s = cone_dict[:f], cone_dict[:l], cone_dict[:q], cone_dict[:s]
+    ep, ed, p = cone_dict[:ep], cone_dict[:ed], cone_dict[:p]
+    sol = SCS_solve(SCS.DirectSolver, m, n, A_reordered, b_reordered, c, f, l, q, s, ep, ed, p)
+    println(sol)
 
     model = Model()
     set_optimizer(model, optimizer_with_attributes(
