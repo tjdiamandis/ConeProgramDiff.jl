@@ -368,3 +368,11 @@ function _d_proj_pow_cone_case4(x, y, z, α)
     ]
     return J
 end
+
+function MOSD.projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.Reals) where {T}
+    return Matrix{Float64}(I, (length(v), length(v)))
+end
+
+function MOSD.projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.Zeros) where {T}
+    return zeros(T, (length(v), length(v)))
+end
