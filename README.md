@@ -8,6 +8,8 @@
 
 `ConeProgramDiff.jl` allows the user to compute the derivatives and adjoints of convex cone programs. The package is based on [`diffcp.py`](https://github.com/cvxgrp/diffcp) and [Differentiating through a cone program](http://web.stanford.edu/~boyd/papers/diff_cone_prog.html).
 
+#### Final project for [18.337](https://mitmath.github.io/18337/)
+
 #### Note: This package is still in active development.
 
 ## Cone programs
