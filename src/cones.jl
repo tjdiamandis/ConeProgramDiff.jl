@@ -32,7 +32,7 @@ const SUPPORTED_INPUT_SETS = Union{
 const EXP_CONE_THRESH = 1e-10
 const POW_CONE_THRESH = 1e-14
 
-# Fixes error in MOSD
+# Fixes √2 factor error in MOSD
 """
    unvec_symm(x, dim)
 Returns a dim-by-dim symmetric matrix corresponding to `x`.
@@ -367,14 +367,4 @@ function _d_proj_pow_cone_case4(x, y, z, α)
         sign(z)*α*r*L/gx    sign(z)*β*r*L/gy    r/za*(1+T*L)
     ]
     return J
-end
-
-
-function MOSD.projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.Reals) where {T}
-    return Matrix{Float64}(I, (length(v), length(v)))
-end
-
-
-function MOSD.projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.Zeros) where {T}
-    return zeros(T, (length(v), length(v)))
 end
