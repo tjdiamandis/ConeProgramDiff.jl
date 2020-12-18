@@ -108,4 +108,5 @@ Ideally, we would like to create something akin to [`cvxpylayers.py`](https://gi
 
 
 ## Other
-We compiled mathematical formulations for cone projections and their derivatives in [this document](https://github.com/tjdiamandis/ConeProgramDiff.jl/blob/main/cone_ref.pdf). All mistakes are our own.
+* We compiled mathematical formulations for cone projections and their derivatives in [this document](https://github.com/tjdiamandis/ConeProgramDiff.jl/blob/main/cone_ref.pdf). All mistakes are our own.
+* Other code for our final project is in [this repo](https://github.com/csquires/ConeProgramDiff-benchmarking).
