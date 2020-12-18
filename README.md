@@ -105,3 +105,7 @@ We do not plan to actively maintain this package; instead, we plan to integrate 
 
 ### Longer Term
 Ideally, we would like to create something akin to [`cvxpylayers.py`](https://github.com/cvxgrp/cvxpylayers) for the Julia ecosystem.
+
+
+## Other
+We compiled mathematical formulations for cone projections and their derivatives in [this document](https://github.com/tjdiamandis/ConeProgramDiff.jl/blob/main/cone_ref.pdf). All mistakes are our own.
