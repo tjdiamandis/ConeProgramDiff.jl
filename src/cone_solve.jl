@@ -59,7 +59,6 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
             zeros(length(y_star));
             -x_star' * dx
         ]
-        Pi_z = pi_z(u, v, w, cone_prod)
 
         g = use_lsqr ? lsqr(-M', dz, atol=1e-10, btol=1e-10) : -M' \ dz
 
