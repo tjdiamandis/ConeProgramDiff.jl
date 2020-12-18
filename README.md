@@ -6,12 +6,12 @@
 [![Build Status](https://travis-ci.com/tjdiamandis/ConeProgramDiff.jl.svg?branch=master)](https://travis-ci.com/tjdiamandis/ConeProgramDiff.jl)
 [![Coverage](https://codecov.io/gh/tjdiamandis/ConeProgramDiff.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/tjdiamandis/ConeProgramDiff.jl)
 
-ConeProgramDiff.jl allows the user to compute the derivatives and adjoints of convex cone programs. The package is based on [diffcp.py](https://github.com/cvxgrp/diffcp) and [Differentiating through a cone program](http://web.stanford.edu/~boyd/papers/diff_cone_prog.html).
+`ConeProgramDiff.jl` allows the user to compute the derivatives and adjoints of convex cone programs. The package is based on [`diffcp.py`](https://github.com/cvxgrp/diffcp) and [Differentiating through a cone program](http://web.stanford.edu/~boyd/papers/diff_cone_prog.html).
 
 #### Note: This package is still in active development.
 
-### Cone programs
-`diffcp` differentiates through a primal-dual cone program pair. The primal problem must be expressed as
+## Cone programs
+`ConeProgramDiff.jl` differentiates through a primal-dual cone program pair. The primal problem must be expressed as
 
 ```
 minimize        c'x
@@ -29,7 +29,7 @@ subject to      A'y + c == 0
 with dual variable `y`.
 
 
-### Usage
+## Usage
 
 We export the function
 
@@ -93,3 +93,13 @@ generates a random feasible cone program. This function returns a dictionary tha
 l1_minimization_program(dims)
 ```
 returns the parameters `A, b, c, cone_prod` of an $\ell_1$ minimization problem, where `size(A) = dims`. The function checks that `dims[1] >= dims[2]` and `rank(A) == dims[2]` so that this problem has a unique solution.
+
+## Future Plans
+
+### Immediate Future
+We do not plan to actively maintain this package; instead, we plan to integrate its functionality into the Julia optimization ecosystem. Specifically, we will
+* put cone program differentation into [DiffOpt.jl](https://github.com/jump-dev/DiffOpt.jl).
+* put projections for the exponential and power cone (and their duals) into [MathOptSetDistances.jl](https://github.com/matbesancon/MathOptSetDistances.jl).
+
+### Longer Term
+Ideally, we would like to create something akin to [`cvxpylayers.py`](https://github.com/cvxgrp/cvxpylayers) for the Julia ecosystem.
