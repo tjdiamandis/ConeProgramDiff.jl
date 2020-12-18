@@ -6,7 +6,7 @@
 [![Build Status](https://travis-ci.com/tjdiamandis/ConeProgramDiff.jl.svg?branch=master)](https://travis-ci.com/tjdiamandis/ConeProgramDiff.jl)
 [![Coverage](https://codecov.io/gh/tjdiamandis/ConeProgramDiff.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/tjdiamandis/ConeProgramDiff.jl)
 
-`ConeProgramDiff.jl` allows the user to compute the derivatives and adjoints of convex cone programs. The package is based on [`diffcp.py`](https://github.com/cvxgrp/diffcp) and [Differentiating through a cone program](http://web.stanford.edu/~boyd/papers/diff_cone_prog.html).
+`ConeProgramDiff.jl` allows the user to compute the derivatives and adjoints of convex cone programs. The package is based on [`diffcp`](https://github.com/cvxgrp/diffcp) and [Differentiating through a cone program](http://web.stanford.edu/~boyd/papers/diff_cone_prog.html).
 
 #### Final project for [18.337](https://mitmath.github.io/18337/)
 
@@ -104,7 +104,7 @@ We do not plan to actively maintain this package; instead, we plan to integrate 
 * put projections for the exponential and power cone (and their duals) into [MathOptSetDistances.jl](https://github.com/matbesancon/MathOptSetDistances.jl).
 
 ### Longer Term
-Ideally, we would like to create something akin to [`cvxpylayers.py`](https://github.com/cvxgrp/cvxpylayers) for the Julia ecosystem.
+Ideally, we would like to create something akin to [`cvxpylayers`](https://github.com/cvxgrp/cvxpylayers) for the Julia ecosystem.
 
 
 ## Other
