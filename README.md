@@ -43,10 +43,10 @@ which takes in the problem parameters `A`, `b`, `c`, and a cone `cone_prod`, whi
 * `MOI.Nonnegatives(d)` for the `d`-dimensional positive orthant,
 * `MOI.SecondOrderCone(d)` for the `d`-dimensional SOC cone,
 * `MOI.PositiveSemidefiniteConeTriangle(d)` for the `d`-dimensional PSD cone (vector version),
-* `MOI.ExponentialCone()` for the three-dimensional exponential cones,
-* `MOI.DualExponentialCone()` for the three-dimensional dual exponential cones,
-* `MOI.PowerCone()` for the three-dimensional power cone, and
-* `MOI.DualPowerCone()` for the three-dimensional power cone.
+* `MOI.ExponentialCone()` for the three-dimensional exponential cone,
+* `MOI.DualExponentialCone()` for the three-dimensional dual exponential cone,
+* `MOI.PowerCone(α)` for the three-dimensional power cone with parameter `α`, and
+* `MOI.DualPowerCone(α)` for the three-dimensional dual power cone with parameter `α`.
 Note that the order does not matter.
 
 Keyword arguments include
