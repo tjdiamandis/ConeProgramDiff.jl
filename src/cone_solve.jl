@@ -39,7 +39,7 @@ end
 function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
     m,n = size(A)
     typeof(A) <: SparseMatrixCSC && dropzeros!(A)
-    x_star, y_star, s_star = solve_opt_problem_scs(A, b, c, cone_prod, warm_start, optimizer)
+    x_star, y_star, s_star = solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer)
 
     Q = spzeros(m+n+1,m+n+1)
     Q[1:n,n+1:n+m]      .= A'
