@@ -374,15 +374,7 @@ function MOSD.projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVect
     return Matrix{Float64}(I, (length(v), length(v)))
 end
 
+
 function MOSD.projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.Zeros) where {T}
     return zeros(T, (length(v), length(v)))
-end
-
-
-function MOSD. projection_gradient_on_set(::MOSD.DefaultDistance, v::AbstractVector{T}, ::MOI.PositiveSemidefiniteConeTriangle) where {T}
-    dim = isqrt(2*length(v))
-    X = unvec_symm(v, dim)
-    λ, U = LinearAlgebra.eigen(X)
-    D = LinearAlgebra.Diagonal(max.(λ, 0))
-
 end
