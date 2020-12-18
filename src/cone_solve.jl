@@ -50,6 +50,7 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
     Q[m+n+1,1:n]        .= -c
 
     u, v, w = (x_star, y_star - s_star, 1.0)
+    M = (Q - I) * dpi_z(u, v, w, cone_prod) + I
 
     function pullback(dx)
         # Assume that dy = ds = 0
@@ -60,7 +61,6 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
         ]
         Pi_z = pi_z(u, v, w, cone_prod)
 
-        M = (Q - I) * dpi_z(u, v, w, cone_prod) + I
         g = use_lsqr ? lsqr(-M', dz, atol=1e-10, btol=1e-10) : -M' \ dz
 
         # TODO: make more efficient by only pulling needed cols/rows
@@ -83,7 +83,6 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
         dQ[1:n,m+n+1]        .= dc
         dQ[m+n+1,1:n]        .= -dc
 
-        M = (Q - I) * dpi_z(u, v, w, cone_prod) + I
         g = dQ*pi_z(u, v, w, cone_prod)
 
         dz = use_lsqr ? lsqr(-M, g, atol=1e-10, btol=1e-10) : -M \ g
