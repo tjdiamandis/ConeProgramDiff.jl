@@ -39,7 +39,7 @@ end
 function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
     m,n = size(A)
     typeof(A) <: SparseMatrixCSC && dropzeros!(A)
-    x_star, y_star, s_star, sol = solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer)
+    x_star, y_star, s_star = solve_opt_problem_scs(A, b, c, cone_prod, warm_start, optimizer)
 
     Q = spzeros(m+n+1,m+n+1)
     Q[1:n,n+1:n+m]      .= A'
@@ -91,7 +91,7 @@ function _solve_and_diff(A, b, c, cone_prod, warm_start, optimizer, use_lsqr)
         ds = DπKdual_v*dv - dv - dw*s_star
         return dx, dy, ds
     end
-    return x_star, y_star, s_star, pushforward, pullback, sol
+    return x_star, y_star, s_star, pushforward, pullback
 end
 
 cone_order = Dict(
@@ -162,12 +162,6 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     #           dual slower -> dec. scale
     m,n = size(A)
 
-    A_reordered, b_reordered, cone_dict = reorder_opt_problem_scs(A, b, cone_prod)
-    f, l, q, s = cone_dict[:f], cone_dict[:l], cone_dict[:q], cone_dict[:s]
-    ep, ed, p = cone_dict[:ep], cone_dict[:ed], cone_dict[:p]
-    sol = SCS_solve(SCS.DirectSolver, m, n, A_reordered, b_reordered, c, f, l, q, s, ep, ed, p)
-    println(sol)
-
     model = Model()
     set_optimizer(model, optimizer_with_attributes(
         SCS.Optimizer, "eps" => 1e-10, "max_iters" => 100000, "verbose" => 0))
@@ -194,7 +188,19 @@ function solve_opt_problem(A, b, c, cone_prod, warm_start, optimizer_factory)
     # TODO: for some reason this fails when b is a sparse vector?
     #    Maybe interface directly with SCS?
     y = isapprox(A'* dual.(con) + c, zeros(length(c)), atol=1e-6) ? dual.(con) : -dual.(con)
-    return value.(x), y, value.(s), sol
+    return value.(x), y, value.(s)
+end
+
+
+function solve_opt_problem_scs(A, b, c, cone_prod, warm_start, optimizer_factory)
+    m,n = size(A)
+
+    A_reordered, b_reordered, cone_dict = reorder_opt_problem_scs(A, b, cone_prod)
+    f, l, q, s = cone_dict[:f], cone_dict[:l], cone_dict[:q], cone_dict[:s]
+    ep, ed, p = cone_dict[:ep], cone_dict[:ed], cone_dict[:p]
+    sol = SCS_solve(SCS.DirectSolver, m, n, A_reordered, b_reordered, c, f, l, q, s, ep, ed, p, verbose=0)
+
+    return sol.x, sol.y, sol.s
 end
 
 
