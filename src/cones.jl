@@ -111,9 +111,9 @@ function _proj_custom(x, cone)
 
     # TODO: Power cone
     elseif typeof(cone) <: MOI.PowerCone
-        error("Not Implemented")
+        _proj_pow_cone(x, cone.exponent; dual=false)
     elseif typeof(cone) <: MOI.DualPowerCone
-        error("Not Implemented")
+        _proj_pow_cone(x, cone.exponent; dual=true)
     end
 end
 
@@ -258,9 +258,9 @@ function _d_proj_custom(x, cone)
 
     # TODO: Power cone
     elseif typeof(cone) <: MOI.PowerCone
-        error("Not Implemented")
+        _d_proj_pow_cone(x, cone.exponent; dual=false)
     elseif typeof(cone) <: MOI.DualPowerCone
-        error("Not Implemented")
+        _d_proj_pow_cone(x, cone.exponent; dual=false)
     end
 end
 
