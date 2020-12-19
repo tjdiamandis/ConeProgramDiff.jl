@@ -124,9 +124,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[ECOS]]
 deps = ["BinaryProvider", "ECOS_jll", "Libdl", "LinearAlgebra", "MathOptInterface", "MathProgBase", "SparseArrays"]
-git-tree-sha1 = "60b955ec92dd2989a532d0c7822db8f080e63582"
+git-tree-sha1 = "60790319686e51e4ba5a0094a5da9173fb0d6733"
 uuid = "e2685f51-7e38-5353-a97d-a921fd2c8199"
-version = "0.12.1"
+version = "0.12.2"
 
 [[ECOS_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
