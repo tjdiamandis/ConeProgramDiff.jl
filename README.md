@@ -54,7 +54,7 @@ Keyword arguments include
 * `use_lsqr`, which is a boolean that indicates if the LSQR method or a dense factorization and backsolve should be used to solve the linear system in the derivative and the adjoint.
 * `verbose`, which is a boolean controlling solver output.
 * `eps`, which specifies stopping tolerance if supported by the chosen solver.
-* `max_iters`, which provides specifies the max iterations for the SCS solver.
+* `max_iters`, which specifies the max iterations for the SCS solver.
 * `scale`, which specifies the regularization parameter for SCS. Defaults to 1.0.
 * `warm_start`, which provides an optional warm start to the SCS solver.
 
@@ -94,7 +94,7 @@ generates a random feasible cone program. This function returns a dictionary tha
 ```julia
 l1_minimization_program(dims)
 ```
-returns the parameters `A, b, c, cone_prod` of an $\ell_1$ minimization problem, where `size(A) = dims`. The function checks that `dims[1] >= dims[2]` and `rank(A) == dims[2]` so that this problem has a unique solution.
+returns the parameters `A, b, c, cone_prod` of an L1 minimization problem, where `size(A) = dims`. The function checks that `dims[1] >= dims[2]` and `rank(A) == dims[2]` so that this problem has a unique solution.
 
 ## Future Plans
 
