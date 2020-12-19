@@ -108,7 +108,7 @@ end
 
 
 function test_d_project_onto_cone()
-    function _test_d_proj_all_cones(x, cone_prod; tol=1e-8, dual=false)
+    function _test_d_proj_all_cones(x, cone_prod; tol=1e-6, dual=false)
         cones = dual ? [MOI.dual_set(c) for c in cone_prod] : cone_prod
         dx = 1e-7 * randn(length(x))
         Dpi = d_project_onto_cone(x, cones)

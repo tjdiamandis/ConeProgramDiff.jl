@@ -8,7 +8,9 @@ function get_random_product_cone(n)
     soc_dim = rand(1:n)
     psd_dim = rand(1:n)
     cone_prod = [MOI.Zeros(zero_dim), MOI.Nonnegatives(nonneg_dim),
-             MOI.SecondOrderCone(soc_dim), MOI.PositiveSemidefiniteConeTriangle(psd_dim)]
+             MOI.SecondOrderCone(soc_dim), MOI.PositiveSemidefiniteConeTriangle(psd_dim),
+             MOI.ExponentialCone(), MOI.DualExponentialCone(),
+             MOI.PowerCone(0.5), MOI.DualPowerCone(0.4)]
     return cone_prod
 end
 
