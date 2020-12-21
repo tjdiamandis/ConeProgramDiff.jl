@@ -11,7 +11,7 @@ function _test_d_proj(cone, tol)
     dproj_test = ConeProgramDiff._d_proj(x, cone) * dx
     if !isapprox(dproj_finite_diff, dproj_test, atol=tol)
         println("Error!")
-        error("Error for x = $x, dx = $dx, $cone")
+        error("Error for x = $x, dx = $dx, $cone\nnorm=$(norm(dproj_finite_diff -dproj_test))")
     end
 end
 
@@ -25,7 +25,7 @@ function test_d_proj(cone::MOI.AbstractVectorSet; tol=1e-8)
 end
 
 
-function test_d_proj(n::Int; tol=1e-8)
+function test_d_proj(n::Int; tol=1e-6)
     cones = [
         MOI.Zeros(n),
         MOI.Nonnegatives(n),
@@ -139,7 +139,7 @@ end
 
 
 @testset "D_Projections Test (Zero, Pos, SOC, PSD)" begin
-    @test test_d_proj(10)
+    @test test_d_proj(20)
 end
 
 @testset "D_Projection Test: Exp Cone" begin
