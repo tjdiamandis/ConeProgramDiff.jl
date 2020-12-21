@@ -32,59 +32,6 @@ const SUPPORTED_INPUT_SETS = Union{
 const EXP_CONE_THRESH = 1e-8
 const POW_CONE_THRESH = 1e-8
 
-# Overwrites MOSD functions to add scale factor (see SCS solver README)
-# https://github.com/cvxgrp/scs
-"""
-   unvec_symm(x, dim)
-Returns a dim-by-dim symmetric matrix corresponding to `x`.
-`x` is a vector of length dim*(dim + 1)/2, corresponding to a symmetric matrix
-```
-X = [ X11     X12/√2 ... X1k/√2
-      X21/√2  X22    ... X2k/√2
-      ...
-      Xk1/√2  Xk2/√2 ... Xkk ],
-```
-where
-`vec(X) = (X11, X12, X22, X13, X23, ..., Xkk)`
-
-Note that the factor √2 preserves inner products:
-`x'*c = Tr(unvec_symm(c, dim) * unvec_symm(x, dim))`
-"""
-function unvec_symm(x, dim)
-    X = zeros(eltype(x), dim, dim)
-    idx = 1
-    for i in 1:dim
-        for j in 1:i
-            if i == j
-                X[i,j] = x[idx]
-            else
-                X[j,i] = X[i,j] = x[idx] / sqrt(2)
-            end
-            idx += 1
-        end
-    end
-    return X
-end
-
-
-"""
-   vec_symm(X)
-Returns a vectorized representation of a symmetric matrix `X`.
-`vec(X) = (X11, √2*X12, X22, √2*X13, X23, ..., Xkk)`
-
-Note that the factor √2 preserves inner products:
-`x'*c = Tr(unvec_symm(c, dim) * unvec_symm(x, dim))`
-"""
-function vec_symm(X)
-    x_vec = sqrt(2).*X[LinearAlgebra.tril(trues(size(X)))']
-    idx = 1
-    for i in 1:size(X)[1]
-        x_vec[idx] =  x_vec[idx]/sqrt(2)
-        idx += i + 1
-    end
-    return x_vec
-end
-
 
 function project_onto_cone(x, cone_prod)
     # TODO: fix to be undefined.
@@ -168,19 +115,40 @@ function get_exp_proj_case4(v; dual=false)
     # Thm: h(x) is smooth, strictly increasing, and changes sign
     @views r, s, t = v[1], v[2], v[3]
 
-    # Note: these won't both be infinity (by case 3)
-    # TODO: figure out a better replacement for Inf
-    lb = r > 0 ? 1 - s/r : -1e6
-    ub = s > 0 ? r/s : 1e6
-
-    # h(x) = ((x-1)*r + s)/(x^2 - x + 1) * exp(x) - (r - x*s)/(x^2 - x + 1)*exp(-x) - t
     h(x) = (((x-1)*r + s) * exp(x) - (r - x*s)*exp(-x))/(x^2 - x + 1) - t
 
+    # Note: these won't both be infinity (by case 3)
+    # TODO: figure out a better replacement for Inf
+    if r > 0
+        lb = 1 - s/r
+    else
+        lb = -1
+        for _ in 1:10
+            h(lb) < 0 && break
+            lb *= 10
+        end
+    end
+    if s > 0
+        ub = r/s
+    else
+        ub = 1
+        for _ in 1:10
+            h(ub) > 0 && break
+            ub *= 10
+        end
+    end
+
+    (h(lb) > 0 || h(ub)) < 0 && error("Numerical error in Proj_exp_cone")
+
+    # ∇h(x) = (exp(x)*(r*(x - 1) + s) + exp(-x)*(r - s*x) + r*exp(x) +
+    #         s*exp(-x))/(x^2 - x + 1) - ((2x - 1)*(exp(x)*(r*(x - 1) + s) -
+    #         exp(-x)*(r - s*x)))/(x^2 - x + 1)^2
+
     # TODO: anything more efficient than bisection search?
-    x = find_zero(h, (lb, ub), verbose=false)
+    x = find_zero(h, (lb,ub), verbose=false)
     vp = ((x - 1)*r + s)/(x^2 - x + 1) * [x; 1.0; exp(x)]
-    vd = (r - x*s)/(x^2 - x + 1) * [1.0; 1.0-x; -exp(-x)]
-# -vd
+    # vd = (r - x*s)/(x^2 - x + 1) * [1.0; 1.0-x; -exp(-x)]
+
     return dual ? -v + vp : vp
 end
 
