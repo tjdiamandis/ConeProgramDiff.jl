@@ -1,3 +1,56 @@
+# https://github.com/cvxgrp/scs
+"""
+   unvec_symm(x, dim)
+Returns a dim-by-dim symmetric matrix corresponding to `x`.
+`x` is a vector of length dim*(dim + 1)/2, corresponding to a symmetric matrix
+```
+X = [ X11     X12/√2 ... X1k/√2
+      X21/√2  X22    ... X2k/√2
+      ...
+      Xk1/√2  Xk2/√2 ... Xkk ],
+```
+where
+`vec(X) = (X11, X12, X22, X13, X23, ..., Xkk)`
+
+Note that the factor √2 preserves inner products:
+`x'*c = Tr(unvec_symm(c, dim) * unvec_symm(x, dim))`
+"""
+function unvec_symm_scs(x, dim)
+    X = zeros(eltype(x), dim, dim)
+    idx = 1
+    for i in 1:dim
+        for j in 1:i
+            if i == j
+                X[i,j] = x[idx]
+            else
+                X[j,i] = X[i,j] = x[idx] / sqrt(2)
+            end
+            idx += 1
+        end
+    end
+    return X
+end
+
+
+"""
+   vec_symm(X)
+Returns a vectorized representation of a symmetric matrix `X`.
+`vec(X) = (X11, √2*X12, X22, √2*X13, X23, ..., Xkk)`
+
+Note that the factor √2 preserves inner products:
+`x'*c = Tr(unvec_symm(c, dim) * unvec_symm(x, dim))`
+"""
+function vec_symm_scs(X)
+    x_vec = sqrt(2).*X[LinearAlgebra.tril(trues(size(X)))']
+    idx = 1
+    for i in 1:size(X)[1]
+        x_vec[idx] =  x_vec[idx]/sqrt(2)
+        idx += i + 1
+    end
+    return x_vec
+end
+
+
 # Write and read CP from file
 function cp_to_file(file, params_dict; dense=true)
     A, b, c = params_dict[:A], params_dict[:b], params_dict[:c]
@@ -11,6 +64,7 @@ function cp_to_file(file, params_dict; dense=true)
     end
 end
 
+
 function _cp_to_file(file, params; opt_vals=(), dense=true)
     if dense
         writedlm(file, (params..., opt_vals...))
@@ -18,6 +72,7 @@ function _cp_to_file(file, params; opt_vals=(), dense=true)
         writedlm(file, (findnz(params[1])..., params[2:3]..., opt_vals...))
     end
 end
+
 
 function cp_from_file(file; dense=true)
     file_vec = readlines(file)

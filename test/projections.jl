@@ -52,7 +52,7 @@ function test_proj_psd()
     for _ in 1
         x = randn(n,n)
         x = x + x'
-        x_vec = ConeProgramDiff.vec_symm(x)
+        x_vec = x[LinearAlgebra.tril(trues(size(x)))']
         model = Model()
         set_optimizer(model, optimizer_with_attributes(SCS.Optimizer, "eps" => 1e-8, "max_iters" => 10000, "verbose" => 0))
         @variable(model, z[1:n,1:n])
@@ -62,9 +62,11 @@ function test_proj_psd()
         @constraint(model, z in PSDCone())
         optimize!(model)
 
-        z_star = ConeProgramDiff.vec_symm(value.(z))
+        z_star = value.(z)[LinearAlgebra.tril(trues(size(x)))']
         p = ConeProgramDiff._proj(x_vec, MOI.PositiveSemidefiniteConeTriangle(n))
-        @assert p ≈ z_star
+        if !isapprox(p, z_star)
+            error("Error in PSD Cone Projection:\np=$p\nz=$z_star")
+        end
         @assert p ≈ ConeProgramDiff._proj(x_vec, MOI.dual_set(MOI.PositiveSemidefiniteConeTriangle(n)))
     end
     return true
