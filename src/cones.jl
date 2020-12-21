@@ -265,7 +265,7 @@ function get_exp_d_proj_case4(v; dual=false)
     Pv = get_exp_proj_case4(v, dual=false)
     nu = Pv[3] - v[3]
     z1,z2,z3 = Pv
-    abs(Pv[2]) <= 1e-8 && error("Numerical error in projection onto exp cone")
+    abs(z2) <= 100eps() && error("Numerical error in projection onto exp cone")
     rs = z1/z2
     exp_rs = exp(rs)
 

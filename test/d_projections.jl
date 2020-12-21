@@ -139,7 +139,7 @@ end
 
 
 @testset "D_Projections Test (Zero, Pos, SOC, PSD)" begin
-    @test test_d_proj(20)
+    @test test_d_proj(10)
 end
 
 @testset "D_Projection Test: Exp Cone" begin
