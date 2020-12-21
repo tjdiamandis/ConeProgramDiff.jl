@@ -32,50 +32,58 @@ const SUPPORTED_INPUT_SETS = Union{
 const EXP_CONE_THRESH = 1e-8
 const POW_CONE_THRESH = 1e-8
 
-# Fixes √2 factor error in MOSD
+# Overwrites MOSD functions to add scale factor (see SCS solver README)
+# https://github.com/cvxgrp/scs
 """
    unvec_symm(x, dim)
 Returns a dim-by-dim symmetric matrix corresponding to `x`.
 `x` is a vector of length dim*(dim + 1)/2, corresponding to a symmetric matrix
-X = [ X11 X12 ... X1k
-       X21 X22 ... X2k
-       ...
-       Xk1 Xk2 ... Xkk ],
+```
+X = [ X11     X12/√2 ... X1k/√2
+      X21/√2  X22    ... X2k/√2
+      ...
+      Xk1/√2  Xk2/√2 ... Xkk ],
+```
 where
-vec(X) = (X11, X21, ..., Xk1, X22, X32, ..., Xkk)
+`vec(X) = (X11, X12, X22, X13, X23, ..., Xkk)`
+
+Note that the factor √2 preserves inner products:
+`x'*c = Tr(unvec_symm(c, dim) * unvec_symm(x, dim))`
 """
-function MOSD.unvec_symm(x, dim)
-   X = zeros(dim, dim)
-   idx = 1
-   for i in 1:dim
-       for j in 1:i
-           # @inbounds X[j,i] = X[i,j] = x[(i-1)*dim-div((i-1)*i, 2)+j]
-           X[j,i] = X[i,j] = x[idx]
-           idx += 1
-       end
-   end
-   X /= sqrt(2)
-   X[LinearAlgebra.diagind(X)] *= sqrt(2)
-   return X
+function unvec_symm(x, dim)
+    X = zeros(eltype(x), dim, dim)
+    idx = 1
+    for i in 1:dim
+        for j in 1:i
+            if i == j
+                X[i,j] = x[idx]
+            else
+                X[j,i] = X[i,j] = x[idx] / sqrt(2)
+            end
+            idx += 1
+        end
+    end
+    return X
 end
 
 
 """
    vec_symm(X)
 Returns a vectorized representation of a symmetric matrix `X`.
-`vec(X) = (X11, X21, ..., Xk1, X22, X32, ..., Xkk)`
+`vec(X) = (X11, √2*X12, X22, √2*X13, X23, ..., Xkk)`
+
+Note that the factor √2 preserves inner products:
+`x'*c = Tr(unvec_symm(c, dim) * unvec_symm(x, dim))`
 """
-function MOSD.vec_symm(X)
-    X = copy(X)
-    X *= sqrt(2)
-    X[LinearAlgebra.diagind(X)] .= X[LinearAlgebra.diagind(X)] ./ sqrt(2)
-   return X[LinearAlgebra.tril(trues(size(X)))']
+function vec_symm(X)
+    x_vec = sqrt(2).*X[LinearAlgebra.tril(trues(size(X)))']
+    idx = 1
+    for i in 1:size(X)[1]
+        x_vec[idx] =  x_vec[idx]/sqrt(2)
+        idx += i + 1
+    end
+    return x_vec
 end
-
-
-# Vector <-> matrix
-vec_symm = MOSD.vec_symm
-unvec_symm = MOSD.unvec_symm
 
 
 function project_onto_cone(x, cone_prod)
