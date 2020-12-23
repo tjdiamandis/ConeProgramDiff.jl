@@ -4,7 +4,6 @@ authors = ["Chandler Squires", "Theo Diamandis"]
 version = "0.1.0"
 
 [deps]
-Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
 Hypatia = "b99e6be6-89ff-11e8-14f8-45c827f4f8f2"
