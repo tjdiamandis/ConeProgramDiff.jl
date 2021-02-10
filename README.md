@@ -10,7 +10,16 @@
 
 #### Final project for [18.337](https://mitmath.github.io/18337/)
 
-#### Note: This package is still in active development.
+## Note: This package is not maintained.
+
+### Immediate Future
+We do not plan to actively maintain this package; instead, we plan to integrate its functionality into the Julia optimization ecosystem. Specifically, we will
+* put cone program differentation into [DiffOpt.jl](https://github.com/jump-dev/DiffOpt.jl).
+* put projections for the exponential and power cone (and their duals) into [MathOptSetDistances.jl](https://github.com/matbesancon/MathOptSetDistances.jl).
+
+### Longer Term
+Ideally, we would like to create something akin to [`cvxpylayers`](https://github.com/cvxgrp/cvxpylayers) for the Julia ecosystem.
+
 
 ## Cone programs
 `ConeProgramDiff.jl` differentiates through a primal-dual cone program pair. The primal problem must be expressed as
@@ -95,16 +104,6 @@ generates a random feasible cone program. This function returns a dictionary tha
 l1_minimization_program(dims)
 ```
 returns the parameters `A, b, c, cone_prod` of an L1 minimization problem, where `size(A) = dims`. The function checks that `dims[1] >= dims[2]` and `rank(A) == dims[2]` so that this problem has a unique solution.
-
-## Future Plans
-
-### Immediate Future
-We do not plan to actively maintain this package; instead, we plan to integrate its functionality into the Julia optimization ecosystem. Specifically, we will
-* put cone program differentation into [DiffOpt.jl](https://github.com/jump-dev/DiffOpt.jl).
-* put projections for the exponential and power cone (and their duals) into [MathOptSetDistances.jl](https://github.com/matbesancon/MathOptSetDistances.jl).
-
-### Longer Term
-Ideally, we would like to create something akin to [`cvxpylayers`](https://github.com/cvxgrp/cvxpylayers) for the Julia ecosystem.
 
 
 ## Other
