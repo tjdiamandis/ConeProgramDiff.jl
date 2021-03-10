@@ -1,9 +1,6 @@
 # ConeProgramDiff
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://tjdiamandis.github.io/ConeProgramDiff.jl/stable)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://tjdiamandis.github.io/ConeProgramDiff.jl/dev)
 [![Build Status](https://github.com/tjdiamandis/ConeProgramDiff.jl/workflows/CI/badge.svg)](https://github.com/tjdiamandis/ConeProgramDiff.jl/actions)
-[![Build Status](https://travis-ci.com/tjdiamandis/ConeProgramDiff.jl.svg?branch=master)](https://travis-ci.com/tjdiamandis/ConeProgramDiff.jl)
 [![Coverage](https://codecov.io/gh/tjdiamandis/ConeProgramDiff.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/tjdiamandis/ConeProgramDiff.jl)
 
 `ConeProgramDiff.jl` allows the user to compute the derivatives and adjoints of convex cone programs. The package is based on [`diffcp`](https://github.com/cvxgrp/diffcp) and [Differentiating through a cone program](http://web.stanford.edu/~boyd/papers/diff_cone_prog.html).
